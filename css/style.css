@@ -697,3 +697,74 @@ footer {
 .hidden-file-input {
   display: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   POPUP LABEL EDITOR
+   ═══════════════════════════════════════════════════════════════ */
+
+.popup-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.popup-label-row input {
+  flex: 1;
+  padding: 5px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-primary);
+  font-size: 0.8rem;
+}
+.popup-label-row input:focus { outline: none; border-color: var(--accent); }
+.popup-label-row .btn { padding: 5px 10px; font-size: 0.75rem; }
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYINPUT SECTIONED GRID
+   ═══════════════════════════════════════════════════════════════ */
+
+.keyinput-section {
+  margin-bottom: 8px;
+}
+
+.keyinput-section-title {
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+
+.keyinput-section-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 3px;
+}
+
+.keyinput-section-grid .mini-key {
+  aspect-ratio: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  color: var(--fg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.08s;
+}
+.keyinput-section-grid .mini-key:hover {
+  border-color: var(--accent);
+  color: var(--fg-primary);
+  transform: scale(1.05);
+}
+.keyinput-section-grid .mini-key.selected {
+  background: var(--accent-dark);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}

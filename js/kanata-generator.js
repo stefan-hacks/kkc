@@ -480,7 +480,7 @@ const ACTION_OPTIONS = [
 
 const state = {
   layers: {
-    base: { name: 'base', bindings: {} },
+    base: { name: 'base', bindings: {}, labels: {} },
   },
   activeLayer: 'base',
   // Popup state
@@ -488,6 +488,7 @@ const state = {
   popupCategory: 'basic', // active tab in popup
   popupSelection: null,   // selected option ID
   popupConfig: {},        // current configurator values
+  popupLabel: '',         // custom key display label
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -590,7 +591,8 @@ function renderKeyboard() {
       if (act !== '_') btn.classList.add('assigned');
       if (state.editingKey === key.code) btn.classList.add('editing');
 
-      btn.innerHTML = `<span class="key-label">${esc(key.label)}</span><span class="key-action">${esc(act === '_' ? '' : act)}</span>`;
+      const label = layer.labels?.[key.code] || key.label;
+      btn.innerHTML = `<span class="key-label">${esc(label)}</span><span class="key-action">${esc(act === '_' ? '' : act)}</span>`;
       btn.onclick = () => openKeyPopup(key);
       rowDiv.appendChild(btn);
     }
@@ -635,6 +637,33 @@ function openKeyPopup(keyObj) {
   document.getElementById('popup-key-name').textContent = `Key: ${keyObj.code}`;
   document.getElementById('popup-search').value = '';
   popup.classList.remove('hidden');
+
+  // Label editor
+  state.popupLabel = state.layers[state.activeLayer].labels?.[keyObj.code] || '';
+  const labelRow = document.getElementById('popup-label-row') || (() => {
+    const row = document.createElement('div');
+    row.id = 'popup-label-row';
+    row.className = 'popup-label-row';
+    row.innerHTML = `
+      <input type="text" id="popup-label-input" placeholder="Custom display name (e.g. ; )" maxlength="6">
+      <button id="popup-label-save" class="btn btn-small">Save Name</button>
+    `;
+    document.querySelector('.popup-header').appendChild(row);
+    return row;
+  })();
+  const labelInput = document.getElementById('popup-label-input');
+  labelInput.value = state.popupLabel;
+  labelInput.oninput = (e) => { state.popupLabel = e.target.value; };
+  document.getElementById('popup-label-save').onclick = () => {
+    if (state.popupLabel.trim()) {
+      if (!state.layers[state.activeLayer].labels) state.layers[state.activeLayer].labels = {};
+      state.layers[state.activeLayer].labels[state.editingKey] = state.popupLabel.trim();
+    } else {
+      delete state.layers[state.activeLayer].labels?.[state.editingKey];
+    }
+    renderKeyboard();
+    document.getElementById('popup-key-badge').textContent = state.popupLabel.trim() || keyObj.label;
+  };
 
   // Pre-fill if key already has a binding
   const current = state.layers[state.activeLayer].bindings[keyObj.code];
@@ -806,7 +835,19 @@ function renderPopupConfigurator() {
       const blankOpt = document.createElement('option');
       blankOpt.value = ''; blankOpt.textContent = 'Common keys…';
       dropdown.appendChild(blankOpt);
-      const COMMON_QUICK_KEYS = ['esc','bspc','tab','ret','spc','lsft','rsft','lctl','rctl','lalt','ralt','lmet','rmet','caps','grv','home','end','pgup','pgdn','left','up','down','rght','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+      const COMMON_QUICK_KEYS = [
+        /* modifiers first (most important) */
+        'lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft','caps',
+        /* letters a–z */
+        'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+        /* numbers 0–9 */
+        '0','1','2','3','4','5','6','7','8','9',
+        /* symbols */
+        '-','=','[',']','\\',';','\'',',','.','/','grv',
+        /* navigation / function */
+        'esc','bspc','tab','ret','spc','home','end','pgup','pgdn','left','up','down','rght',
+        'f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12',
+      ];
       COMMON_QUICK_KEYS.forEach(k => {
         const o = document.createElement('option');
         o.value = k; o.textContent = k;
@@ -826,36 +867,44 @@ function renderPopupConfigurator() {
       dropdownWrap.appendChild(dropdown);
       wrap.appendChild(dropdownWrap);
 
-      // Mini grid (alphabet + numbers + modifiers)
+      // Mini grid: 4 sections in order: modifiers → letters → numbers → symbols
       const grid = document.createElement('div');
       grid.className = 'keyinput-mini-grid';
-      const MINI_GRID_KEYS = [
-        'esc','bspc','tab','ret','spc',
-        '1','2','3','4','5','6','7','8','9','0',
-        'a','b','c','d','e','f','g','h','i','j',
-        'k','l','m','n','o','p','q','r','s','t',
-        'u','v','w','x','y','z',
-        'lsft','rsft','lctl','rctl','lalt','ralt','lmet','rmet',
-        'caps','grv','-','=','[',']','\\',';','\'',',','.','/',
-        'home','end','pgup','pgdn','left','up','down','rght',
-      ];
-      MINI_GRID_KEYS.forEach(k => {
-        const btn = document.createElement('button');
-        btn.className = 'mini-key';
-        btn.textContent = k;
-        btn.dataset.key = k;
-        if ((state.popupConfig[field.id] || field.default) === k) btn.classList.add('selected');
-        btn.onclick = () => {
-          input.value = k;
-          state.popupConfig[field.id] = k;
-          grid.querySelectorAll('.mini-key').forEach(x => x.classList.remove('selected'));
-          btn.classList.add('selected');
-          updatePopupPreview();
-        };
-        grid.appendChild(btn);
-      });
-      wrap.appendChild(grid);
 
+      const MODIFIER_KEYS = ['lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft','caps'];
+      const LETTER_KEYS = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+      const NUMBER_KEYS = ['0','1','2','3','4','5','6','7','8','9'];
+      const SYMBOL_KEYS = ['-','=','[',']','\\',';','\'',',','.','/','grv'];
+
+      function makeSection(title, keys) {
+        const sec = document.createElement('div');
+        sec.className = 'keyinput-section';
+        sec.innerHTML = `<div class="keyinput-section-title">${title}</div><div class="keyinput-section-grid"></div>`;
+        const sg = sec.querySelector('.keyinput-section-grid');
+        keys.forEach(k => {
+          const btn = document.createElement('button');
+          btn.className = 'mini-key';
+          btn.textContent = k;
+          btn.dataset.key = k;
+          if ((state.popupConfig[field.id] || field.default) === k) btn.classList.add('selected');
+          btn.onclick = () => {
+            input.value = k;
+            state.popupConfig[field.id] = k;
+            grid.querySelectorAll('.mini-key').forEach(x => x.classList.remove('selected'));
+            btn.classList.add('selected');
+            updatePopupPreview();
+          };
+          sg.appendChild(btn);
+        });
+        return sec;
+      }
+
+      grid.appendChild(makeSection('Modifiers', MODIFIER_KEYS));
+      grid.appendChild(makeSection('Letters', LETTER_KEYS));
+      grid.appendChild(makeSection('Numbers', NUMBER_KEYS));
+      grid.appendChild(makeSection('Symbols', SYMBOL_KEYS));
+
+      wrap.appendChild(grid);
       container.appendChild(wrap);
     }
   });
@@ -901,7 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-add-layer').onclick = () => {
     const name = prompt('New layer name:');
     if (!name || state.layers[name]) return alert('Invalid or duplicate layer name.');
-    state.layers[name] = { name, bindings: {} };
+    state.layers[name] = { name, bindings: {}, labels: {} };
     state.activeLayer = name;
     renderLayerTabs();
     renderKeyboard();
@@ -1135,7 +1184,7 @@ function parseKbdFile(text) {
           keyIdx++;
         }
       }
-      newLayers[layerName] = { name: layerName, bindings: layerBindings };
+      newLayers[layerName] = { name: layerName, bindings: layerBindings, labels: {} };
     }
   }
 
