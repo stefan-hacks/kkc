@@ -852,7 +852,7 @@ function renderPopupConfigurator() {
       const COMMON_QUICK_KEYS = [
         /* modifiers + nav */
         'lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft','caps',
-        'tab','ret','spc','bspc','insert','home','end','pgup','pgdn',
+        'tab','ret','spc','bspc','del','insert','home','end','pgup','pgdn',
         'left','down','up','rght',
         /* letters a–z */
         'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
@@ -898,7 +898,7 @@ function renderPopupConfigurator() {
 
       const MODIFIER_KEYS = [
         'lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft',
-        'caps','tab','ret','spc','bspc','insert',
+        'caps','tab','ret','spc','bspc','del','insert',
         'home','end','pgup','pgdn','left','down','up','rght',
       ];
       const LETTER_KEYS = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
