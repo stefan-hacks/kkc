@@ -1,16 +1,18 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- * KKC — Kanata Keyboard Configurator (JavaScript Engine)
- * Single-file, vanilla JS. No build step required.
+ * KKC v2 — Kanata Keyboard Configurator (ZSA-style popup)
+ * Click any key → category tabs → human-friendly options →
+ * contextual configurator → generates proper Kanata syntax.
  * ═══════════════════════════════════════════════════════════════
  */
 
 'use strict';
 
-/* ── Data: Standard US ANSI 60% layout key positions ───────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   DATA: Keyboard layout
+   ═══════════════════════════════════════════════════════════════ */
 
 const KEYBOARD_LAYOUT = [
-  // Row 1 — numbers
   [
     { code: 'grv',  label: '`',   width: 1 },
     { code: '1',    label: '1',   width: 1 },
@@ -27,7 +29,6 @@ const KEYBOARD_LAYOUT = [
     { code: '=',    label: '=',   width: 1 },
     { code: 'bspc', label: '⌫',   width: 2 },
   ],
-  // Row 2 — QWERTY
   [
     { code: 'tab',  label: 'Tab', width: 1.5 },
     { code: 'q',    label: 'Q',   width: 1 },
@@ -44,7 +45,6 @@ const KEYBOARD_LAYOUT = [
     { code: ']',    label: ']',   width: 1 },
     { code: '\\',   label: '\\',  width: 1.5 },
   ],
-  // Row 3 — ASDF
   [
     { code: 'caps', label: 'Caps', width: 1.75 },
     { code: 'a',    label: 'A',    width: 1 },
@@ -60,7 +60,6 @@ const KEYBOARD_LAYOUT = [
     { code: "'",    label: "'",    width: 1 },
     { code: 'ret',  label: '⏎',    width: 2.25 },
   ],
-  // Row 4 — ZXCV
   [
     { code: 'lsft', label: 'Shift', width: 2.25 },
     { code: 'z',    label: 'Z',     width: 1 },
@@ -75,7 +74,6 @@ const KEYBOARD_LAYOUT = [
     { code: '/',    label: '/',     width: 1 },
     { code: 'rsft', label: 'Shift', width: 2.75 },
   ],
-  // Row 5 — modifiers + space
   [
     { code: 'lctl', label: 'Ctrl',  width: 1.25 },
     { code: 'lmet', label: 'Meta',  width: 1.25 },
@@ -87,98 +85,302 @@ const KEYBOARD_LAYOUT = [
   ],
 ];
 
-/* Flat list of all key codes for defsrc ordering */
 const DEFSRC_ORDER = KEYBOARD_LAYOUT.flat().map(k => k.code);
 
-/* ── Data: Kanata action catalog ───────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   DATA: User-friendly action catalog
+   Each entry has a simple title, description, optional configurator fields,
+   and a build() function that returns the Kanata action string.
+   ═══════════════════════════════════════════════════════════════ */
 
-const ACTION_CATALOG = [
-  /* Basics */
-  { id: 'transparent',  label: 'Transparent (_)',     action: '_',        category: 'Basic', desc: 'Fall through to base layer' },
-  { id: 'noop',         label: 'No-op (XX)',          action: 'XX',       category: 'Basic', desc: 'Do nothing' },
-  { id: 'key',          label: 'Key name…',            action: '',         category: 'Basic', desc: 'Type a literal key name',        prompt: 'Key name (e.g. esc, bspc, f1):' },
-
-  /* Layer */
-  { id: 'layer-switch', label: 'layer-switch',         action: '(layer-switch LAYER)', category: 'Layer', desc: 'Permanently switch base layer', prompt: 'Layer name:' },
-  { id: 'layer-while-held', label: 'layer-while-held', action: '(layer-while-held LAYER)', category: 'Layer', desc: 'Momentary layer while held', prompt: 'Layer name:' },
-  { id: 'layer-toggle', label: 'layer-toggle',         action: '(layer-toggle LAYER)', category: 'Layer', desc: 'Toggle layer on/off', prompt: 'Layer name:' },
-  { id: 'lrld',         label: 'Live Reload (lrld)',   action: 'lrld',     category: 'Layer', desc: 'Reload config without restart' },
-  { id: 'lrld-next',    label: 'lrld-next',            action: 'lrld-next', category: 'Layer', desc: 'Load next config file' },
-  { id: 'lrld-prev',    label: 'lrld-prev',            action: 'lrld-prev', category: 'Layer', desc: 'Load previous config file' },
-
-  /* Tap-hold */
-  { id: 'tap-hold',           label: 'tap-hold',           action: '(tap-hold 200 200 TAP HOLD)',        category: 'Tap-Hold', desc: 'Classic tap-hold',        prompt: 'tap-ms hold-ms tap-action hold-action (space-separated):' },
-  { id: 'tap-hold-press',     label: 'tap-hold-press',     action: '(tap-hold-press 200 200 TAP HOLD)',  category: 'Tap-Hold', desc: 'Hold on any key press',  prompt: 'tap-ms hold-ms tap-action hold-action:' },
-  { id: 'tap-hold-release',   label: 'tap-hold-release',   action: '(tap-hold-release 200 200 TAP HOLD)', category: 'Tap-Hold', desc: 'Hold on key release',     prompt: 'tap-ms hold-ms tap-action hold-action:' },
-  { id: 'tap-hold-release-keys', label: 'tap-hold-release-keys', action: '(tap-hold-release-keys 200 200 TAP HOLD KEYS)', category: 'Tap-Hold', desc: 'Hold on specific key releases', prompt: 'tap-ms hold-ms tap-action hold-action trigger-keys:' },
-
-  /* One-shot */
-  { id: 'one-shot',       label: 'one-shot',       action: '(one-shot 500 ACTION)',      category: 'One-Shot', desc: 'One-shot modifier/layer', prompt: 'timeout-ms action:' },
-  { id: 'one-shot-press', label: 'one-shot-press', action: '(one-shot-press 500 ACTION)', category: 'One-Shot', desc: 'Cancels on press',        prompt: 'timeout-ms action:' },
-
-  /* Macros */
-  { id: 'macro',          label: 'macro',           action: '(macro spc spc)',           category: 'Macro', desc: 'Static key sequence',     prompt: 'Space-separated actions/delays:' },
-  { id: 'dynamic-macro-record', label: 'dyn-macro-rec', action: '(dynamic-macro-record 0)', category: 'Macro', desc: 'Start recording macro slot', prompt: 'Slot number (0–?):' },
-  { id: 'dynamic-macro-stop',   label: 'dyn-macro-stop',  action: 'dynamic-macro-record-stop', category: 'Macro', desc: 'Stop recording' },
-  { id: 'dynamic-macro-play',   label: 'dyn-macro-play',  action: '(dynamic-macro-play 0)',    category: 'Macro', desc: 'Play recorded macro',       prompt: 'Slot number:' },
-
-  /* Mouse */
-  { id: 'movemouse-up',    label: 'movemouse-up',    action: '(movemouse-up 25)',    category: 'Mouse', desc: 'Move cursor up',     prompt: 'Distance (px):' },
-  { id: 'movemouse-down',  label: 'movemouse-down',  action: '(movemouse-down 25)',  category: 'Mouse', desc: 'Move cursor down',   prompt: 'Distance (px):' },
-  { id: 'movemouse-left',  label: 'movemouse-left',  action: '(movemouse-left 25)',  category: 'Mouse', desc: 'Move cursor left',   prompt: 'Distance (px):' },
-  { id: 'movemouse-right', label: 'movemouse-right', action: '(movemouse-right 25)', category: 'Mouse', desc: 'Move cursor right',  prompt: 'Distance (px):' },
-  { id: 'scroll-up',       label: 'scroll-up',       action: '(scroll-up 25)',       category: 'Mouse', desc: 'Scroll up',          prompt: 'Distance:' },
-  { id: 'scroll-down',     label: 'scroll-down',     action: '(scroll-down 25)',     category: 'Mouse', desc: 'Scroll down',        prompt: 'Distance:' },
-  { id: 'scroll-left',     label: 'scroll-left',     action: '(scroll-left 25)',     category: 'Mouse', desc: 'Scroll left',        prompt: 'Distance:' },
-  { id: 'scroll-right',    label: 'scroll-right',    action: '(scroll-right 25)',    category: 'Mouse', desc: 'Scroll right',       prompt: 'Distance:' },
-
-  /* Combinations */
-  { id: 'multi',  label: 'multi',  action: '(multi ACTION1 ACTION2)', category: 'Combination', desc: 'Execute multiple actions', prompt: 'Space-separated actions:' },
-  { id: 'fork',   label: 'fork',   action: '(fork LEFT RIGHT TRIGGERS)', category: 'Combination', desc: 'Choose action by trigger keys', prompt: 'left-action right-action trigger-keys:' },
-  { id: 'switch', label: 'switch', action: '(switch (KEY ACTION) …)', category: 'Combination', desc: 'Conditional action selection', prompt: 'Pairs of key action (e.g. a esc b tab):' },
-  { id: 'chord',  label: 'chord',  action: '(chord NAME ACTION1 ACTION2)', category: 'Combination', desc: 'Simultaneous key chord', prompt: 'chord-name action1 action2:' },
-
-  /* Sequence */
-  { id: 'sequence', label: 'sequence', action: '(sequence KEY1 KEY2 ACTION)', category: 'Sequence', desc: 'Leader-key sequence', prompt: 'key1 key2 … action:' },
-
-  /* Special */
-  { id: 'unicode',       label: 'unicode',       action: '(unicode 😀)',      category: 'Special', desc: 'Emit Unicode character',    prompt: 'Character:' },
-  { id: 'cmd',           label: 'cmd',           action: '(cmd PROGRAM)',      category: 'Special', desc: 'Run external program',      prompt: 'Program [args…]:' },
-  { id: 'caps-word',     label: 'caps-word',     action: 'caps-word',          category: 'Special', desc: 'Activate caps-word mode' },
-  { id: 'tap-dance',     label: 'tap-dance',     action: '(tap-dance 200 (TAP1) (TAP2))', category: 'Special', desc: 'Different action per tap count', prompt: 'timeout-ms (tap1) (tap2) …:' },
-  { id: 'arbitrary-code', label: 'arbitrary-code', action: '(arbitrary-code 0)', category: 'Special', desc: 'Emit arbitrary scancode',   prompt: 'Scancode number:' },
-  { id: 'release-key',   label: 'release-key',   action: '(release-key KEY)',  category: 'Special', desc: 'Release a held key',        prompt: 'Key name:' },
-  { id: 'release-layer', label: 'release-layer', action: '(release-layer LAYER)', category: 'Special', desc: 'Deactivate a layer',        prompt: 'Layer name:' },
-  { id: 'push-msg',      label: 'push-msg',      action: '(push-msg "hello")', category: 'Special', desc: 'Push message to TCP clients', prompt: 'Message string:' },
+const ACTION_CATEGORIES = [
+  { id: 'basic',    icon: '🔤', label: 'Basic' },
+  { id: 'layer',    icon: '🔀', label: 'Layers' },
+  { id: 'taphold',  icon: '⏱️', label: 'Tap-Hold' },
+  { id: 'oneshot',  icon: '👆', label: 'One-Shot' },
+  { id: 'macro',    icon: '📼', label: 'Macros' },
+  { id: 'mouse',    icon: '🖱️', label: 'Mouse' },
+  { id: 'combo',    icon: '🔧', label: 'Combinations' },
+  { id: 'special',  icon: '✨', label: 'Special' },
 ];
 
-/* ── State ──────────────────────────────────────────────────────────────── */
+const COMMON_KEYS = ['esc','bspc','tab','ret','spc','lsft','rsft','lctl','rctl','lalt','ralt','lmet','rmet','caps','grv','home','end','pgup','pgdn','left','up','down','rght','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'];
+const MOD_KEYS = ['lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft'];
+
+const ACTION_OPTIONS = [
+  /* ── BASIC ──────────────────────────────────────────────────── */
+  {
+    id: 'transparent', category: 'basic',
+    title: 'Transparent', desc: 'Fall through to base layer',
+    build: () => '_',
+  },
+  {
+    id: 'noop', category: 'basic',
+    title: 'No-op', desc: 'Do nothing when pressed',
+    build: () => 'XX',
+  },
+  {
+    id: 'key', category: 'basic',
+    title: 'Type a key', desc: 'Send a single key press',
+    config: [
+      { type: 'select', id: 'key', label: 'Key', options: COMMON_KEYS, default: 'esc' },
+      { type: 'text',   id: 'key_custom', label: 'Or type custom key name', placeholder: 'e.g. prnt' },
+    ],
+    build: (c) => c.key_custom?.trim() || c.key || 'esc',
+  },
+  {
+    id: 'lrld', category: 'basic',
+    title: 'Live Reload', desc: 'Reload config without restarting',
+    build: () => 'lrld',
+  },
+
+  /* ── LAYERS ─────────────────────────────────────────────────── */
+  {
+    id: 'layer-switch', category: 'layer',
+    title: 'Switch Layer', desc: 'Permanently change base layer',
+    config: [
+      { type: 'text', id: 'layer', label: 'Layer name', placeholder: 'e.g. symbols' },
+    ],
+    build: (c) => `(layer-switch ${c.layer || 'base'})`,
+  },
+  {
+    id: 'layer-toggle', category: 'layer',
+    title: 'Momentary Layer', desc: 'Hold key to activate layer, release to return',
+    config: [
+      { type: 'text', id: 'layer', label: 'Layer name', placeholder: 'e.g. nav' },
+    ],
+    build: (c) => `(layer-while-held ${c.layer || 'base'})`,
+  },
+
+  /* ── TAP-HOLD ───────────────────────────────────────────────── */
+  {
+    id: 'tap-hold', category: 'taphold',
+    title: 'Tap-Hold (basic)', desc: 'Tap = one key, Hold = modifier/layer',
+    config: [
+      { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
+      { type: 'select', id: 'hold_mod', label: 'Hold action', options: [...MOD_KEYS,'layer-toggle'], default: 'lctl' },
+      { type: 'text', id: 'hold_layer', label: 'Or hold layer name (if above = layer-toggle)', placeholder: 'e.g. symbols' },
+    ],
+    build: (c) => {
+      const tap = c.tap_key || 'esc';
+      const hold = c.hold_layer?.trim()
+        ? `(layer-while-held ${c.hold_layer.trim()})`
+        : (c.hold_mod || 'lctl');
+      return `(tap-hold ${c.tap_ms || 200} ${c.hold_ms || 200} ${tap} ${hold})`;
+    },
+  },
+  {
+    id: 'tap-hold-press', category: 'taphold',
+    title: 'Tap-Hold (press variant)', desc: 'Hold activates on any other key press (more responsive)',
+    config: [
+      { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
+      { type: 'select', id: 'hold_mod', label: 'Hold action', options: [...MOD_KEYS,'layer-toggle'], default: 'lctl' },
+      { type: 'text', id: 'hold_layer', label: 'Or hold layer name', placeholder: 'e.g. symbols' },
+    ],
+    build: (c) => {
+      const tap = c.tap_key || 'esc';
+      const hold = c.hold_layer?.trim()
+        ? `(layer-while-held ${c.hold_layer.trim()})`
+        : (c.hold_mod || 'lctl');
+      return `(tap-hold-press ${c.tap_ms || 200} ${c.hold_ms || 200} ${tap} ${hold})`;
+    },
+  },
+  {
+    id: 'tap-hold-release', category: 'taphold',
+    title: 'Tap-Hold (release variant)', desc: 'Hold activates only when another key is released',
+    config: [
+      { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200 },
+      { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200 },
+      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
+      { type: 'select', id: 'hold_mod', label: 'Hold action', options: MOD_KEYS, default: 'lctl' },
+    ],
+    build: (c) => `(tap-hold-release ${c.tap_ms || 200} ${c.hold_ms || 200} ${c.tap_key || 'esc'} ${c.hold_mod || 'lctl'})`,
+  },
+
+  /* ── ONE-SHOT ───────────────────────────────────────────────── */
+  {
+    id: 'one-shot', category: 'oneshot',
+    title: 'One-Shot Modifier', desc: 'Modifier stays active until next key press',
+    config: [
+      { type: 'number', id: 'timeout', label: 'Timeout (ms)', default: 500, min: 100, max: 5000 },
+      { type: 'select', id: 'mod', label: 'Modifier', options: MOD_KEYS, default: 'lctl' },
+    ],
+    build: (c) => `(one-shot ${c.timeout || 500} ${c.mod || 'lctl'})`,
+  },
+  {
+    id: 'one-shot-layer', category: 'oneshot',
+    title: 'One-Shot Layer', desc: 'Layer stays active until next key press',
+    config: [
+      { type: 'number', id: 'timeout', label: 'Timeout (ms)', default: 500, min: 100, max: 5000 },
+      { type: 'text', id: 'layer', label: 'Layer name', placeholder: 'e.g. symbols' },
+    ],
+    build: (c) => `(one-shot ${c.timeout || 500} (layer-while-held ${c.layer || 'base'}))`,
+  },
+
+  /* ── MACROS ─────────────────────────────────────────────────── */
+  {
+    id: 'macro', category: 'macro',
+    title: 'Static Macro', desc: 'Type a sequence of keys automatically',
+    config: [
+      { type: 'text', id: 'sequence', label: 'Key sequence (space-separated)', placeholder: 'e.g. lctl c lctl v' },
+    ],
+    build: (c) => {
+      const seq = (c.sequence || '').trim();
+      if (!seq) return '(macro spc)';
+      return `(macro ${seq.split(/\s+/).join(' ')})`;
+    },
+  },
+  {
+    id: 'dynamic-macro-record', category: 'macro',
+    title: 'Record Macro', desc: 'Start recording a macro into a slot',
+    config: [
+      { type: 'number', id: 'slot', label: 'Slot number', default: 0, min: 0, max: 9 },
+    ],
+    build: (c) => `(dynamic-macro-record ${c.slot ?? 0})`,
+  },
+  {
+    id: 'dynamic-macro-play', category: 'macro',
+    title: 'Play Macro', desc: 'Replay a recorded macro',
+    config: [
+      { type: 'number', id: 'slot', label: 'Slot number', default: 0, min: 0, max: 9 },
+    ],
+    build: (c) => `(dynamic-macro-play ${c.slot ?? 0})`,
+  },
+
+  /* ── MOUSE ──────────────────────────────────────────────────── */
+  {
+    id: 'movemouse', category: 'mouse',
+    title: 'Mouse Movement', desc: 'Move cursor in a direction',
+    config: [
+      { type: 'select', id: 'dir', label: 'Direction', options: ['up','down','left','right'], default: 'up' },
+      { type: 'number', id: 'dist', label: 'Distance (px)', default: 25, min: 1, max: 200 },
+    ],
+    build: (c) => `(movemouse-${c.dir || 'up'} ${c.dist || 25})`,
+  },
+  {
+    id: 'scroll', category: 'mouse',
+    title: 'Scroll Wheel', desc: 'Scroll in a direction',
+    config: [
+      { type: 'select', id: 'dir', label: 'Direction', options: ['up','down','left','right'], default: 'up' },
+      { type: 'number', id: 'dist', label: 'Distance', default: 25, min: 1, max: 200 },
+    ],
+    build: (c) => `(scroll-${c.dir || 'up'} ${c.dist || 25})`,
+  },
+
+  /* ── COMBINATIONS ─────────────────────────────────────────────── */
+  {
+    id: 'multi', category: 'combo',
+    title: 'Multi Action', desc: 'Trigger several actions at once',
+    config: [
+      { type: 'text', id: 'actions', label: 'Actions (space-separated)', placeholder: 'e.g. lctl c' },
+    ],
+    build: (c) => `(multi ${(c.actions || 'lctl c').trim().split(/\s+/).join(' ')})`,
+  },
+  {
+    id: 'tap-dance', category: 'combo',
+    title: 'Tap Dance', desc: 'Different action per tap count',
+    config: [
+      { type: 'number', id: 'timeout', label: 'Timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'text', id: 'tap1', label: '1st tap action', placeholder: 'e.g. esc' },
+      { type: 'text', id: 'tap2', label: '2nd tap action', placeholder: 'e.g. caps' },
+    ],
+    build: (c) => {
+      const t1 = c.tap1?.trim() || 'esc';
+      const t2 = c.tap2?.trim() || 'caps';
+      return `(tap-dance ${c.timeout || 200} (${t1}) (${t2}))`;
+    },
+  },
+  {
+    id: 'fork', category: 'combo',
+    title: 'Fork (Conditional)', desc: 'Choose action based on another key',
+    config: [
+      { type: 'text', id: 'left', label: 'Default action', placeholder: 'e.g. a' },
+      { type: 'text', id: 'right', label: 'Alternate action', placeholder: 'e.g. b' },
+      { type: 'text', id: 'triggers', label: 'Trigger keys (space-separated)', placeholder: 'e.g. lsft rsft' },
+    ],
+    build: (c) => `(fork ${c.left || 'a'} ${c.right || 'b'} ${(c.triggers || 'lsft').trim().split(/\s+/).join(' ')})`,
+  },
+
+  /* ── SPECIAL ────────────────────────────────────────────────── */
+  {
+    id: 'unicode', category: 'special',
+    title: 'Unicode Character', desc: 'Type any Unicode symbol',
+    config: [
+      { type: 'text', id: 'char', label: 'Character', placeholder: 'e.g. 😀 or €' },
+    ],
+    build: (c) => `(unicode ${c.char || ' '})`,
+  },
+  {
+    id: 'cmd', category: 'special',
+    title: 'Run Command', desc: 'Launch a program (requires danger-enable-cmd)',
+    config: [
+      { type: 'text', id: 'program', label: 'Program', placeholder: 'e.g. alacritty' },
+      { type: 'text', id: 'args', label: 'Arguments (optional)', placeholder: 'e.g. -e vim' },
+    ],
+    build: (c) => {
+      const prog = c.program?.trim() || 'alacritty';
+      const args = c.args?.trim();
+      return args ? `(cmd ${prog} ${args})` : `(cmd ${prog})`;
+    },
+  },
+  {
+    id: 'caps-word', category: 'special',
+    title: 'Caps Word', desc: 'Capitalize next word (like Shift on steroids)',
+    build: () => 'caps-word',
+  },
+  {
+    id: 'arbitrary-code', category: 'special',
+    title: 'Custom Scancode', desc: 'Emit a raw OS scancode',
+    config: [
+      { type: 'number', id: 'code', label: 'Scancode number', default: 0, min: 0, max: 999 },
+    ],
+    build: (c) => `(arbitrary-code ${c.code ?? 0})`,
+  },
+  {
+    id: 'release-key', category: 'special',
+    title: 'Release Key', desc: 'Force-release a held key',
+    config: [
+      { type: 'select', id: 'key', label: 'Key to release', options: COMMON_KEYS, default: 'lctl' },
+    ],
+    build: (c) => `(release-key ${c.key || 'lctl'})`,
+  },
+  {
+    id: 'sequence', category: 'special',
+    title: 'Key Sequence', desc: 'Vim-like leader sequence to trigger action',
+    config: [
+      { type: 'text', id: 'keys', label: 'Sequence keys (space-separated)', placeholder: 'e.g. j k' },
+      { type: 'text', id: 'action', label: 'Result action', placeholder: 'e.g. esc' },
+    ],
+    build: (c) => `(sequence ${(c.keys || 'j k').trim().split(/\s+/).join(' ')} ${c.action || 'esc'})`,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════ */
 
 const state = {
   layers: {
-    base: {
-      name: 'base',
-      // Map from key-code → action string
-      bindings: {},
-    },
+    base: { name: 'base', bindings: {} },
   },
   activeLayer: 'base',
-  selectedAction: null,
-  aliases: {}, // alias name → action string
-  nextAliasNum: 1,
+  // Popup state
+  editingKey: null,       // key code currently being edited
+  popupCategory: 'basic', // active tab in popup
+  popupSelection: null,   // selected option ID
+  popupConfig: {},        // current configurator values
 };
 
-/* ── Helpers ──────────────────────────────────────────────────────────── */
-
-function esc(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
+/* ═══════════════════════════════════════════════════════════════
+   GENERATOR
+   ═══════════════════════════════════════════════════════════════ */
 
 function generateKbd() {
   const lines = [];
-
   lines.push(';; ═══════════════════════════════════════════════════════════════');
   lines.push(';; Generated by KKC — Kanata Keyboard Configurator');
   lines.push(';; https://github.com/jtroo/kanata');
@@ -188,11 +390,9 @@ function generateKbd() {
   // defcfg
   const cfg = [];
   if (document.getElementById('cfg-process-unmapped').checked) cfg.push('  process-unmapped-keys yes');
-  if (document.getElementById('cfg-danger-cmd').checked)        cfg.push('  danger-enable-cmd yes');
+  if (document.getElementById('cfg-danger-cmd').checked) cfg.push('  danger-enable-cmd yes');
   const seqTimeout = document.getElementById('cfg-seq-timeout').value;
-  if (seqTimeout && seqTimeout !== '1000') cfg.push(`  sequence-timeout ${seqTimeout}`);
-  const tapHoldMs = document.getElementById('cfg-tap-hold-ms').value;
-  if (tapHoldMs && tapHoldMs !== '200') cfg.push(`  ;; Default tap-hold ms: ${tapHoldMs}`);
+  if (seqTimeout !== '1000') cfg.push(`  sequence-timeout ${seqTimeout}`);
   const linuxDev = document.getElementById('cfg-linux-dev').value.trim();
   if (linuxDev) cfg.push(`  linux-dev ${linuxDev}`);
 
@@ -203,30 +403,28 @@ function generateKbd() {
     lines.push('');
   }
 
-  // defsrc (always the same layout)
+  // defsrc
   lines.push('(defsrc');
   for (const row of KEYBOARD_LAYOUT) {
-    const rowStr = row.map(k => k.code).join('  ');
-    lines.push(`  ${rowStr}`);
+    lines.push(`  ${row.map(k => k.code).join('  ')}`);
   }
   lines.push(')');
   lines.push('');
 
-  // defalias (collect all unique non-trivial actions)
+  // Collect aliases
   const aliasEntries = [];
-  const usedAliases = new Set();
+  let aliasCounter = 1;
   const layerNames = Object.keys(state.layers);
+
   for (const lname of layerNames) {
     const layer = state.layers[lname];
     for (const kcode of DEFSRC_ORDER) {
-      const act = layer.bindings[kcode] || '_';
-      if (act === '_') continue;
-      // Generate alias for complex actions
-      if (act.startsWith('(') || act.includes(' ')) {
-        const aliasName = `_a${state.nextAliasNum++}`;
+      const act = layer.bindings[kcode];
+      if (!act || act === '_') continue;
+      if (act.includes(' ') || act.startsWith('(')) {
+        const aliasName = `_a${aliasCounter++}`;
         aliasEntries.push(`  ${aliasName} ${act}`);
         layer.bindings[kcode] = `@${aliasName}`;
-        usedAliases.add(aliasName);
       }
     }
   }
@@ -238,13 +436,13 @@ function generateKbd() {
     lines.push('');
   }
 
-  // deflayer for each layer
+  // deflayer
   for (const lname of layerNames) {
     const layer = state.layers[lname];
     lines.push(`(deflayer ${lname}`);
     for (const row of KEYBOARD_LAYOUT) {
-      const rowActs = row.map(k => layer.bindings[k.code] || '_');
-      lines.push(`  ${rowActs.join('  ')}`);
+      const acts = row.map(k => layer.bindings[k.code] || '_');
+      lines.push(`  ${acts.join('  ')}`);
     }
     lines.push(')');
     lines.push('');
@@ -254,63 +452,12 @@ function generateKbd() {
 }
 
 function updatePreview() {
-  const out = document.getElementById('kbd-output');
-  out.textContent = generateKbd();
+  document.getElementById('kbd-output').textContent = generateKbd();
 }
 
-/* ── UI: Layer list ────────────────────────────────────────────────────── */
-
-function renderLayerList() {
-  const container = document.getElementById('layer-list');
-  container.innerHTML = '';
-  Object.values(state.layers).forEach(layer => {
-    const btn = document.createElement('button');
-    btn.className = 'layer-btn' + (layer.name === state.activeLayer ? ' active' : '');
-    btn.textContent = layer.name;
-    btn.onclick = () => {
-      state.activeLayer = layer.name;
-      renderLayerList();
-      renderKeyboard();
-      document.getElementById('current-layer-name').textContent = layer.name;
-    };
-    container.appendChild(btn);
-  });
-}
-
-/* ── UI: Action list ───────────────────────────────────────────────────── */
-
-function renderActionList(filter = '') {
-  const container = document.getElementById('action-list');
-  container.innerHTML = '';
-
-  const groups = {};
-  for (const act of ACTION_CATALOG) {
-    if (filter && !act.label.toLowerCase().includes(filter.toLowerCase()) && !act.category.toLowerCase().includes(filter.toLowerCase())) continue;
-    if (!groups[act.category]) groups[act.category] = [];
-    groups[act.category].push(act);
-  }
-
-  for (const [cat, items] of Object.entries(groups)) {
-    const h3 = document.createElement('h3');
-    h3.className = 'action-category';
-    h3.textContent = cat;
-    container.appendChild(h3);
-
-    for (const item of items) {
-      const div = document.createElement('div');
-      div.className = 'action-item' + (state.selectedAction === item.id ? ' selected' : '');
-      div.title = item.desc;
-      div.innerHTML = `<strong>${esc(item.label)}</strong><br><small>${esc(item.desc)}</small>`;
-      div.onclick = () => {
-        state.selectedAction = item.id;
-        renderActionList(filter);
-      };
-      container.appendChild(div);
-    }
-  }
-}
-
-/* ── UI: Keyboard renderer ─────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD RENDERER
+   ═══════════════════════════════════════════════════════════════ */
 
 function renderKeyboard() {
   const container = document.getElementById('keyboard');
@@ -320,259 +467,342 @@ function renderKeyboard() {
   for (const row of KEYBOARD_LAYOUT) {
     const rowDiv = document.createElement('div');
     rowDiv.className = 'keyboard-row';
-
     for (const key of row) {
-      const kbtn = document.createElement('button');
-      kbtn.className = 'key';
-      kbtn.style.flex = key.width;
+      const btn = document.createElement('button');
+      btn.className = 'key';
+      btn.style.flex = key.width;
       const act = layer.bindings[key.code] || '_';
-      kbtn.innerHTML = `<span class="key-label">${esc(key.label)}</span><span class="key-action">${esc(act === '_' ? '' : act)}</span>`;
-      kbtn.title = `${key.code}\n${act}`;
-      kbtn.onclick = () => onKeyClicked(key.code);
-      rowDiv.appendChild(kbtn);
+      if (act !== '_') btn.classList.add('assigned');
+      if (state.editingKey === key.code) btn.classList.add('editing');
+
+      btn.innerHTML = `<span class="key-label">${esc(key.label)}</span><span class="key-action">${esc(act === '_' ? '' : act)}</span>`;
+      btn.onclick = () => openKeyPopup(key);
+      rowDiv.appendChild(btn);
     }
     container.appendChild(rowDiv);
   }
 }
 
-function onKeyClicked(keyCode) {
-  if (!state.selectedAction) {
-    // No action selected — maybe enter raw text
-    const raw = prompt(`Enter raw action for ${keyCode} (or leave blank for transparent):`);
-    if (raw !== null) {
-      state.layers[state.activeLayer].bindings[keyCode] = raw.trim() || '_';
+/* ═══════════════════════════════════════════════════════════════
+   LAYER TABS
+   ═══════════════════════════════════════════════════════════════ */
+
+function renderLayerTabs() {
+  const container = document.getElementById('layer-tabs');
+  container.innerHTML = '';
+  Object.values(state.layers).forEach(layer => {
+    const btn = document.createElement('button');
+    btn.className = 'layer-tab' + (layer.name === state.activeLayer ? ' active' : '');
+    btn.textContent = layer.name;
+    btn.onclick = () => {
+      state.activeLayer = layer.name;
+      renderLayerTabs();
       renderKeyboard();
       updatePreview();
+    };
+    container.appendChild(btn);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KEY POPUP — ZSA-style category picker
+   ═══════════════════════════════════════════════════════════════ */
+
+function openKeyPopup(keyObj) {
+  state.editingKey = keyObj.code;
+  state.popupCategory = 'basic';
+  state.popupSelection = null;
+  state.popupConfig = {};
+  renderKeyboard();
+
+  const popup = document.getElementById('key-popup');
+  document.getElementById('popup-key-badge').textContent = keyObj.label;
+  document.getElementById('popup-key-name').textContent = `Key: ${keyObj.code}`;
+  document.getElementById('popup-search').value = '';
+  popup.classList.remove('hidden');
+
+  // Pre-fill if key already has a binding
+  const current = state.layers[state.activeLayer].bindings[keyObj.code];
+  if (current && current !== '_') {
+    // Try to find matching option
+    const match = ACTION_OPTIONS.find(opt => {
+      const test = opt.build ? opt.build({}) : '';
+      return test === current;
+    });
+    if (match) {
+      state.popupCategory = match.category;
+      state.popupSelection = match.id;
     }
+  }
+
+  renderPopupTabs();
+  renderPopupOptions();
+  renderPopupConfigurator();
+  updatePopupPreview();
+}
+
+function closeKeyPopup(save = false) {
+  if (save && state.popupSelection) {
+    const opt = ACTION_OPTIONS.find(o => o.id === state.popupSelection);
+    if (opt) {
+      const action = opt.build(state.popupConfig);
+      state.layers[state.activeLayer].bindings[state.editingKey] = action;
+    }
+  }
+  state.editingKey = null;
+  document.getElementById('key-popup').classList.add('hidden');
+  renderKeyboard();
+  updatePreview();
+}
+
+function renderPopupTabs() {
+  const container = document.getElementById('popup-tabs');
+  container.innerHTML = '';
+  ACTION_CATEGORIES.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'popup-tab' + (cat.id === state.popupCategory ? ' active' : '');
+    btn.innerHTML = `<span>${cat.icon}</span><span>${esc(cat.label)}</span>`;
+    btn.onclick = () => {
+      state.popupCategory = cat.id;
+      state.popupSelection = null;
+      state.popupConfig = {};
+      renderPopupTabs();
+      renderPopupOptions();
+      renderPopupConfigurator();
+      updatePopupPreview();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function renderPopupOptions() {
+  const container = document.getElementById('popup-options');
+  container.innerHTML = '';
+  const search = document.getElementById('popup-search').value.toLowerCase();
+
+  const opts = ACTION_OPTIONS.filter(opt => {
+    if (opt.category !== state.popupCategory) return false;
+    if (!search) return true;
+    return opt.title.toLowerCase().includes(search) || opt.desc.toLowerCase().includes(search);
+  });
+
+  opts.forEach(opt => {
+    const div = document.createElement('div');
+    div.className = 'popup-option' + (opt.id === state.popupSelection ? ' selected' : '');
+    div.innerHTML = `<span class="opt-title">${esc(opt.title)}</span><span class="opt-desc">${esc(opt.desc)}</span>`;
+    div.onclick = () => {
+      state.popupSelection = opt.id;
+      state.popupConfig = {};
+      renderPopupOptions();
+      renderPopupConfigurator();
+      updatePopupPreview();
+    };
+    container.appendChild(div);
+  });
+
+  if (opts.length === 0) {
+    container.innerHTML = '<div class="opt-desc" style="grid-column:1/-1;text-align:center;padding:20px;">No actions match your search.</div>';
+  }
+}
+
+function renderPopupConfigurator() {
+  const container = document.getElementById('popup-configurator');
+  container.innerHTML = '';
+
+  if (!state.popupSelection) {
+    container.innerHTML = '<p class="cfg-desc">Select an action from the grid to configure it.</p>';
     return;
   }
 
-  const actDef = ACTION_CATALOG.find(a => a.id === state.selectedAction);
-  if (!actDef) return;
+  const opt = ACTION_OPTIONS.find(o => o.id === state.popupSelection);
+  if (!opt || !opt.config) {
+    container.innerHTML = `<p class="cfg-desc">"${esc(opt.title)}" needs no configuration. Click Save to apply.</p>`;
+    return;
+  }
 
-  // If action has a prompt, show modal
-  if (actDef.prompt) {
-    openModal(actDef, keyCode);
+  const title = document.createElement('h4');
+  title.textContent = opt.title;
+  container.appendChild(title);
+
+  opt.config.forEach(field => {
+    const lbl = document.createElement('label');
+    lbl.textContent = field.label;
+    container.appendChild(lbl);
+
+    if (field.type === 'text') {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = field.placeholder || '';
+      input.value = state.popupConfig[field.id] || '';
+      input.oninput = (e) => {
+        state.popupConfig[field.id] = e.target.value;
+        updatePopupPreview();
+      };
+      container.appendChild(input);
+    } else if (field.type === 'number') {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = field.min ?? '';
+      input.max = field.max ?? '';
+      input.value = state.popupConfig[field.id] ?? (field.default ?? '');
+      input.oninput = (e) => {
+        state.popupConfig[field.id] = e.target.value;
+        updatePopupPreview();
+      };
+      container.appendChild(input);
+    } else if (field.type === 'select') {
+      const select = document.createElement('select');
+      field.options.forEach(optVal => {
+        const o = document.createElement('option');
+        o.value = optVal;
+        o.textContent = optVal;
+        if ((state.popupConfig[field.id] || field.default) === optVal) o.selected = true;
+        select.appendChild(o);
+      });
+      select.onchange = (e) => {
+        state.popupConfig[field.id] = e.target.value;
+        updatePopupPreview();
+      };
+      container.appendChild(select);
+    }
+  });
+
+  // Show current preview
+  const preview = document.createElement('div');
+  preview.className = 'cfg-desc';
+  preview.style.marginTop = '10px';
+  preview.innerHTML = `<strong>Preview:</strong> <code style="color:var(--accent)">${esc(opt.build(state.popupConfig))}</code>`;
+  container.appendChild(preview);
+}
+
+function updatePopupPreview() {
+  const opt = ACTION_OPTIONS.find(o => o.id === state.popupSelection);
+  const code = document.getElementById('popup-preview-action');
+  if (opt) {
+    code.textContent = opt.build(state.popupConfig);
   } else {
-    // Simple action — apply directly
-    state.layers[state.activeLayer].bindings[keyCode] = actDef.action;
-    renderKeyboard();
-    updatePreview();
+    code.textContent = '_';
   }
 }
 
-/* ── Modal for parameterized actions ──────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
 
-function openModal(actDef, keyCode) {
-  const overlay = document.getElementById('modal-overlay');
-  const body = document.getElementById('modal-body');
-  body.innerHTML = '';
+function esc(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-  const p = document.createElement('p');
-  p.textContent = actDef.prompt;
-  body.appendChild(p);
+/* ═══════════════════════════════════════════════════════════════
+   EVENT WIRING
+   ═══════════════════════════════════════════════════════════════ */
 
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'modal-input';
-  input.placeholder = actDef.action;
-  body.appendChild(input);
+document.addEventListener('DOMContentLoaded', () => {
+  renderLayerTabs();
+  renderKeyboard();
+  updatePreview();
 
-  // Show a hint with the template
-  const hint = document.createElement('pre');
-  hint.className = 'modal-hint';
-  hint.textContent = `Template: ${actDef.action}`;
-  body.appendChild(hint);
-
-  overlay.classList.remove('hidden');
-  input.focus();
-
-  // Handler
-  const apply = () => {
-    const val = input.value.trim();
-    if (!val) { overlay.classList.add('hidden'); return; }
-    let resolved = actDef.action;
-    // Simple template replacement
-    if (resolved.includes('LAYER')) resolved = resolved.replace('LAYER', val);
-    else if (resolved.includes('TAP') && resolved.includes('HOLD')) {
-      const parts = val.split(/\s+/);
-      if (parts.length >= 4) {
-        resolved = resolved.replace('200', parts[0]).replace('200', parts[1]).replace('TAP', parts[2]).replace('HOLD', parts.slice(3).join(' '));
-      } else {
-        resolved = val; // user typed full expression
-      }
-    } else if (resolved.includes('ACTION')) resolved = resolved.replace('ACTION', val);
-    else if (resolved.includes('KEYS')) resolved = resolved.replace('KEYS', val);
-    else if (resolved.includes('PROGRAM')) resolved = resolved.replace('PROGRAM', val);
-    else if (resolved.includes('KEY')) resolved = resolved.replace('KEY', val);
-    else {
-      // Generic positional replacements or full override
-      const placeholders = (resolved.match(/[A-Z]+/g) || []);
-      if (placeholders.length > 0) {
-        const parts = val.split(/\s+/);
-        placeholders.forEach((ph, i) => {
-          resolved = resolved.replace(ph, parts[i] !== undefined ? parts[i] : ph);
-        });
-      } else {
-        resolved = val;
-      }
-    }
-    state.layers[state.activeLayer].bindings[keyCode] = resolved;
-    overlay.classList.add('hidden');
+  // Toolbar
+  document.getElementById('btn-add-layer').onclick = () => {
+    const name = prompt('New layer name:');
+    if (!name || state.layers[name]) return alert('Invalid or duplicate layer name.');
+    state.layers[name] = { name, bindings: {} };
+    state.activeLayer = name;
+    renderLayerTabs();
     renderKeyboard();
     updatePreview();
   };
 
-  document.getElementById('modal-apply').onclick = apply;
-  document.getElementById('modal-cancel').onclick = () => overlay.classList.add('hidden');
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') apply(); });
-}
-
-/* ── Toolbar actions ──────────────────────────────────────────────────── */
-
-function addLayer() {
-  const name = prompt('New layer name:');
-  if (!name || state.layers[name]) return alert('Layer name invalid or already exists.');
-  state.layers[name] = { name, bindings: {} };
-  state.activeLayer = name;
-  renderLayerList();
-  renderKeyboard();
-  document.getElementById('current-layer-name').textContent = name;
-  updatePreview();
-}
-
-function renameLayer() {
-  const oldName = state.activeLayer;
-  const newName = prompt('Rename layer to:', oldName);
-  if (!newName || newName === oldName || state.layers[newName]) return;
-  state.layers[newName] = state.layers[oldName];
-  state.layers[newName].name = newName;
-  delete state.layers[oldName];
-  state.activeLayer = newName;
-  renderLayerList();
-  document.getElementById('current-layer-name').textContent = newName;
-  updatePreview();
-}
-
-function deleteLayer() {
-  if (Object.keys(state.layers).length <= 1) return alert('Cannot delete the only layer.');
-  if (!confirm(`Delete layer "${state.activeLayer}"?`)) return;
-  delete state.layers[state.activeLayer];
-  state.activeLayer = Object.keys(state.layers)[0];
-  renderLayerList();
-  renderKeyboard();
-  document.getElementById('current-layer-name').textContent = state.activeLayer;
-  updatePreview();
-}
-
-function clearLayer() {
-  if (!confirm(`Clear all bindings on layer "${state.activeLayer}"?`)) return;
-  state.layers[state.activeLayer].bindings = {};
-  renderKeyboard();
-  updatePreview();
-}
-
-function loadSample() {
-  // Load a sample home-row-mods + layers config
-  state.layers = {
-    base: {
-      name: 'base',
-      bindings: {
-        caps: '(tap-hold-press 200 200 esc lctl)',
-        a: '(tap-hold-press 200 200 a lctl)',
-        s: '(tap-hold-press 200 200 s lalt)',
-        d: '(tap-hold-press 200 200 d lsft)',
-        f: '(tap-hold-press 200 200 f lmet)',
-        j: '(tap-hold-press 200 200 j rmet)',
-        k: '(tap-hold-press 200 200 k rsft)',
-        l: '(tap-hold-press 200 200 l ralt)',
-        ';': '(tap-hold-press 200 200 ; rctl)',
-        grv: '(layer-while-held symbols)',
+  document.getElementById('btn-load-sample').onclick = () => {
+    state.layers = {
+      base: {
+        name: 'base',
+        bindings: {
+          caps: '(tap-hold-press 200 200 esc lctl)',
+          a: '(tap-hold-press 200 200 a lctl)',
+          s: '(tap-hold-press 200 200 s lalt)',
+          d: '(tap-hold-press 200 200 d lsft)',
+          f: '(tap-hold-press 200 200 f lmet)',
+          j: '(tap-hold-press 200 200 j rmet)',
+          k: '(tap-hold-press 200 200 k rsft)',
+          l: '(tap-hold-press 200 200 l ralt)',
+          ';': '(tap-hold-press 200 200 ; rctl)',
+          grv: '(layer-while-held symbols)',
+        },
       },
-    },
-    symbols: {
-      name: 'symbols',
-      bindings: {
-        '1': 'f1', '2': 'f2', '3': 'f3', '4': 'f4', '5': 'f5',
-        '6': 'f6', '7': 'f7', '8': 'f8', '9': 'f9', '0': 'f10',
-        q: '!', w: '@', e: '#', r: '$', t: '%',
-        y: '^', u: '&', i: '*', o: '(', p: ')',
-        a: '-', s: '=', d: '[', f: ']', g: '\\',
-        h: ';', j: "'", k: ',', l: '.', ';': '/',
-        z: '_', x: '+', c: '{', v: '}', b: '|',
+      symbols: {
+        name: 'symbols',
+        bindings: {
+          '1': 'f1', '2': 'f2', '3': 'f3', '4': 'f4', '5': 'f5',
+          '6': 'f6', '7': 'f7', '8': 'f8', '9': 'f9', '0': 'f10',
+          q: '!', w: '@', e: '#', r: '$', t: '%',
+          y: '^', u: '&', i: '*', o: '(', p: ')',
+          a: '-', s: '=', d: '[', f: ']', g: '\\',
+          h: ';', j: "'", k: ',', l: '.', ';': '/',
+          z: '_', x: '+', c: '{', v: '}', b: '|',
+        },
       },
-    },
-  };
-  state.activeLayer = 'base';
-  renderLayerList();
-  renderKeyboard();
-  document.getElementById('current-layer-name').textContent = 'base';
-  updatePreview();
-}
-
-function downloadKbd() {
-  const blob = new Blob([generateKbd()], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'kanata.kbd';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function copyToClipboard() {
-  navigator.clipboard.writeText(generateKbd()).then(() => {
-    const btn = document.getElementById('btn-copy');
-    const old = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = old, 1500);
-  });
-}
-
-/* ── Quick-assign buttons ──────────────────────────────────────────────── */
-
-function setupQuickAssign() {
-  document.querySelectorAll('.quick-btn').forEach(btn => {
-    btn.onclick = () => {
-      const action = btn.dataset.action;
-      state.selectedAction = null; // quick assign overrides catalog selection
-      // Apply to currently selected key? No — we need to know which key.
-      // Instead, set selectedAction to a synthetic quick-action.
-      // We'll create a temporary action entry.
-      const tmpId = '__quick__' + Date.now();
-      ACTION_CATALOG.push({ id: tmpId, label: 'Quick', action, category: 'Quick' });
-      state.selectedAction = tmpId;
-      renderActionList();
     };
+    state.activeLayer = 'base';
+    renderLayerTabs();
+    renderKeyboard();
+    updatePreview();
+  };
+
+  document.getElementById('btn-clear-all').onclick = () => {
+    if (!confirm('Clear all bindings on ALL layers?')) return;
+    Object.values(state.layers).forEach(l => l.bindings = {});
+    renderKeyboard();
+    updatePreview();
+  };
+
+  document.getElementById('btn-copy').onclick = () => {
+    navigator.clipboard.writeText(generateKbd()).then(() => {
+      const btn = document.getElementById('btn-copy');
+      const old = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = old, 1500);
+    });
+  };
+
+  document.getElementById('btn-download').onclick = () => {
+    const blob = new Blob([generateKbd()], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kanata.kbd';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Popup controls
+  document.getElementById('popup-close').onclick = () => closeKeyPopup(false);
+  document.getElementById('popup-save').onclick = () => closeKeyPopup(true);
+  document.getElementById('popup-clear').onclick = () => {
+    state.layers[state.activeLayer].bindings[state.editingKey] = '_';
+    closeKeyPopup(false);
+  };
+  document.getElementById('popup-search').oninput = () => {
+    renderPopupOptions();
+  };
+
+  // Close popup on backdrop click or Escape
+  document.getElementById('key-popup').addEventListener('click', (e) => {
+    if (e.target.classList.contains('popup-backdrop')) closeKeyPopup(false);
   });
-}
-
-/* ── Event wiring ──────────────────────────────────────────────────────── */
-
-document.addEventListener('DOMContentLoaded', () => {
-  renderLayerList();
-  renderActionList();
-  renderKeyboard();
-  updatePreview();
-  setupQuickAssign();
-
-  document.getElementById('btn-add-layer').onclick = addLayer;
-  document.getElementById('btn-rename-layer').onclick = renameLayer;
-  document.getElementById('btn-delete-layer').onclick = deleteLayer;
-  document.getElementById('btn-clear-layer').onclick = clearLayer;
-  document.getElementById('btn-load-sample').onclick = loadSample;
-  document.getElementById('btn-download').onclick = downloadKbd;
-  document.getElementById('btn-copy').onclick = copyToClipboard;
-
-  document.getElementById('action-search').addEventListener('input', e => {
-    renderActionList(e.target.value);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('key-popup').classList.contains('hidden')) {
+      closeKeyPopup(false);
+    }
   });
 
-  // Re-render preview when config toggles change
+  // Config change triggers
   ['cfg-process-unmapped', 'cfg-danger-cmd'].forEach(id => {
     document.getElementById(id).addEventListener('change', updatePreview);
   });
-  ['cfg-seq-timeout', 'cfg-tap-hold-ms', 'cfg-linux-dev'].forEach(id => {
+  ['cfg-seq-timeout', 'cfg-linux-dev'].forEach(id => {
     document.getElementById(id).addEventListener('input', updatePreview);
   });
 });

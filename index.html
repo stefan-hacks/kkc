@@ -8,17 +8,6 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     KKC — Kanata Keyboard Configurator
-     A single-page interactive visual editor for Kanata .kbd configs.
-     Features:
-       • Multi-layer support
-       • Drag-and-drop or click-to-assign actions
-       • Real-time preview of generated .kbd file
-       • Download button for the final configuration
-       • All Kanata actions documented inline
-     ═══════════════════════════════════════════════════════════════ -->
-
 <header>
   <h1>KKC</h1>
   <p class="subtitle">Kanata Keyboard Configurator — <a href="https://github.com/jtroo/kanata" target="_blank">kanata</a> v1.12.x</p>
@@ -26,121 +15,93 @@
 
 <main class="app">
 
-  <!-- ── Sidebar: Layers & Controls ─────────────────────────────── -->
-  <aside class="sidebar">
-    <section class="panel layers-panel">
-      <h2>Layers</h2>
-      <div id="layer-list" class="layer-list"></div>
-      <button id="btn-add-layer" class="btn btn-primary">+ Add Layer</button>
-    </section>
-
-    <section class="panel action-panel">
-      <h2>Actions</h2>
-      <p class="hint">Click an action, then click a key to assign it.</p>
-      <div class="action-search">
-        <input type="text" id="action-search" placeholder="Search actions…">
-      </div>
-      <div id="action-list" class="action-list"></div>
-    </section>
-
-    <section class="panel config-panel">
-      <h2>Global Config</h2>
-      <label>
-        <input type="checkbox" id="cfg-process-unmapped" checked>
-        <code>process-unmapped-keys yes</code>
-      </label>
-      <label>
-        <input type="checkbox" id="cfg-danger-cmd">
-        <code>danger-enable-cmd</code>
-      </label>
-      <label>
-        Sequence timeout (ms):
-        <input type="number" id="cfg-seq-timeout" value="1000">
-      </label>
-      <label>
-        Tap-hold default (ms):
-        <input type="number" id="cfg-tap-hold-ms" value="200">
-      </label>
-      <label>
-        Linux output device:
-        <input type="text" id="cfg-linux-dev" placeholder="e.g. /dev/input/event3">
-      </label>
-    </section>
-  </aside>
-
-  <!-- ── Main: Keyboard Visualizer ────────────────────────────────── -->
-  <section class="keyboard-area">
-    <div class="toolbar">
-      <div class="layer-info">
-        <span class="label">Editing layer:</span>
-        <span id="current-layer-name" class="name">base</span>
-        <button id="btn-rename-layer" class="btn btn-small">Rename</button>
-        <button id="btn-delete-layer" class="btn btn-small btn-danger">Delete</button>
-      </div>
-      <div class="actions">
-        <button id="btn-clear-layer" class="btn">Clear Layer</button>
-        <button id="btn-load-sample" class="btn">Load Sample</button>
-      </div>
+  <!-- ── Toolbar ────────────────────────────────────────────────── -->
+  <section class="toolbar">
+    <div class="layer-bar">
+      <span class="label">Layer:</span>
+      <div id="layer-tabs" class="layer-tabs"></div>
+      <button id="btn-add-layer" class="btn btn-small btn-primary">+</button>
     </div>
-
-    <div id="keyboard" class="keyboard"></div>
-
-    <div class="quick-assign">
-      <h3>Quick Assign</h3>
-      <div class="quick-buttons">
-        <button class="quick-btn" data-action="_">Transparent (_) ↩</button>
-        <button class="quick-btn" data-action="XX">No-op (XX)</button>
-        <button class="quick-btn" data-action="lrld">Live Reload</button>
-        <button class="quick-btn" data-action="(tap-hold 200 200 caps lctl)">Caps→Esc/Ctrl</button>
-        <button class="quick-btn" data-action="(layer-while-held symbols)">Symbols Layer</button>
-        <button class="quick-btn" data-action="(one-shot 500 lctl)">One-shot Ctrl</button>
-        <button class="quick-btn" data-action="(macro spc spc)">Double Space</button>
-        <button class="quick-btn" data-action="(cmd alacritty)">Launch Term</button>
-      </div>
+    <div class="toolbar-actions">
+      <button id="btn-load-sample" class="btn btn-small">Load Sample</button>
+      <button id="btn-clear-all" class="btn btn-small btn-danger">Clear All</button>
+      <button id="btn-copy" class="btn btn-small">Copy Config</button>
+      <button id="btn-download" class="btn btn-small btn-primary">Download .kbd</button>
     </div>
   </section>
 
-  <!-- ── Bottom: Generated Config Preview ──────────────────────── -->
-  <section class="preview-area">
-    <div class="preview-toolbar">
-      <h2>Generated <code>kanata.kbd</code></h2>
-      <div class="preview-actions">
-        <button id="btn-copy" class="btn">Copy to Clipboard</button>
-        <button id="btn-download" class="btn btn-primary">Download .kbd</button>
-      </div>
+  <!-- ── Keyboard ─────────────────────────────────────────────────── -->
+  <section id="keyboard" class="keyboard"></section>
+
+  <!-- ── Global Config ────────────────────────────────────────────── -->
+  <section class="global-config">
+    <h3>Global Options</h3>
+    <div class="config-grid">
+      <label><input type="checkbox" id="cfg-process-unmapped" checked> <span>Process unmapped keys</span></label>
+      <label><input type="checkbox" id="cfg-danger-cmd"> <span>Enable <code>cmd</code> action</span></label>
+      <label>Sequence timeout: <input type="number" id="cfg-seq-timeout" value="1000"> ms</label>
+      <label>Linux device: <input type="text" id="cfg-linux-dev" placeholder="/dev/input/event3"></label>
     </div>
+  </section>
+
+  <!-- ── Config Preview ───────────────────────────────────────────── -->
+  <section class="preview-area">
+    <h3>Generated <code>kanata.kbd</code></h3>
     <pre id="kbd-output" class="kbd-preview"></pre>
   </section>
 
 </main>
 
 <footer>
-  <p>
-    KKC is a community tool for <a href="https://github.com/jtroo/kanata">Kanata</a>.
-    Not affiliated with jtroo or the Kanata project.
-    Config syntax validated against Kanata v1.12.x documentation.
-  </p>
+  <p>KKC for <a href="https://github.com/jtroo/kanata">Kanata</a>. Not affiliated with jtroo.</p>
 </footer>
 
 <!-- ═══════════════════════════════════════════════════════════════
-     Modals
+     Key Popup — ZSA-inspired category-based action picker
      ═══════════════════════════════════════════════════════════════ -->
+<div id="key-popup" class="key-popup hidden">
+  <div class="popup-backdrop"></div>
+  <div class="popup-panel">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-title">
+        <span class="key-badge" id="popup-key-badge">A</span>
+        <span id="popup-key-name">Key: a</span>
+      </div>
+      <div class="popup-search">
+        <input type="text" id="popup-search" placeholder="Search actions…">
+      </div>
+      <button id="popup-close" class="popup-close" title="Close (Esc)">×</button>
+    </div>
 
-<!-- Action builder modal -->
-<div id="modal-overlay" class="modal-overlay hidden">
-  <div class="modal">
-    <h3>Configure Action</h3>
-    <div id="modal-body"></div>
-    <div class="modal-actions">
-      <button id="modal-cancel" class="btn">Cancel</button>
-      <button id="modal-apply" class="btn btn-primary">Apply</button>
+    <!-- Body: tabs + options + configurator -->
+    <div class="popup-body">
+      <!-- Category tabs (left sidebar) -->
+      <nav id="popup-tabs" class="popup-tabs"></nav>
+
+      <!-- Options grid (center) -->
+      <div class="popup-options-wrap">
+        <div id="popup-options" class="popup-options"></div>
+      </div>
+
+      <!-- Contextual configurator (right sidebar) -->
+      <aside id="popup-configurator" class="popup-configurator"></aside>
+    </div>
+
+    <!-- Footer: preview of what will be written -->
+    <div class="popup-footer">
+      <div class="preview-line">
+        <span class="label">Will output:</span>
+        <code id="popup-preview-action">_</code>
+      </div>
+      <div class="popup-footer-actions">
+        <button id="popup-clear" class="btn btn-small">Clear Key</button>
+        <button id="popup-save" class="btn btn-small btn-primary">Save</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     Scripts
-     ═══════════════════════════════════════════════════════════════ -->
 <script src="js/kanata-generator.js"></script>
 </body>
 </html>
