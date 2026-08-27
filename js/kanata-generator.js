@@ -571,6 +571,18 @@ function updatePreview() {
   document.getElementById('kbd-output').textContent = generateKbd();
 }
 
+const CATPPUCCIN_LAYERS = [
+  'layer-rosewater', 'layer-flamingo', 'layer-pink', 'layer-mauve',
+  'layer-red',       'layer-maroon',   'layer-peach', 'layer-yellow',
+  'layer-green',     'layer-teal',     'layer-sky',   'layer-sapphire',
+  'layer-blue',      'layer-lavender',
+];
+
+function getLayerColorClass(layerName) {
+  const idx = Object.keys(state.layers).indexOf(layerName);
+  return CATPPUCCIN_LAYERS[idx % CATPPUCCIN_LAYERS.length];
+}
+
 /* ═══════════════════════════════════════════════════════════════
    KEYBOARD RENDERER
    ═══════════════════════════════════════════════════════════════ */
@@ -579,6 +591,7 @@ function renderKeyboard() {
   const container = document.getElementById('keyboard');
   container.innerHTML = '';
   const layer = state.layers[state.activeLayer];
+  container.className = 'keyboard ' + getLayerColorClass(state.activeLayer);
 
   for (const row of KEYBOARD_LAYOUT) {
     const rowDiv = document.createElement('div');
@@ -609,7 +622,8 @@ function renderLayerTabs() {
   container.innerHTML = '';
   Object.values(state.layers).forEach(layer => {
     const btn = document.createElement('button');
-    btn.className = 'layer-tab' + (layer.name === state.activeLayer ? ' active' : '');
+    const colorClass = getLayerColorClass(layer.name);
+    btn.className = 'layer-tab' + (layer.name === state.activeLayer ? ' active ' + colorClass : '') + ' ' + colorClass;
     btn.textContent = layer.name;
     btn.onclick = () => {
       state.activeLayer = layer.name;
@@ -981,6 +995,94 @@ document.addEventListener('DOMContentLoaded', () => {
     a.download = 'kanata.kbd';
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  /* ── Export PDF (one layer per page) ─────────────────────────── */
+  document.getElementById('btn-export-pdf').onclick = () => {
+    const win = window.open('', '_blank');
+    if (!win) return alert('Popup blocked — please allow popups for this site.');
+
+    const layerNames = Object.keys(state.layers);
+    const catColors = {
+      'layer-rosewater': '#f2d5cf',
+      'layer-flamingo':   '#eebebe',
+      'layer-pink':       '#f4b8e4',
+      'layer-mauve':      '#cba6f7',
+      'layer-red':        '#eba0ac',
+      'layer-maroon':     '#f5c2e7',
+      'layer-peach':      '#fab387',
+      'layer-yellow':     '#f9e2af',
+      'layer-green':      '#a6e3a1',
+      'layer-teal':       '#94e2d5',
+      'layer-sky':        '#89dceb',
+      'layer-sapphire':   '#74c7ec',
+      'layer-blue':       '#89b4fa',
+      'layer-lavender':   '#b4befe',
+    };
+
+    // Build HTML for all layers
+    let html = `
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>KKC PDF Export</title>
+<style>
+@page { size: A4 landscape; margin: 14mm; }
+body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #fff; color: #222; }
+.layer-page { page-break-after: always; padding: 10mm; box-sizing: border-box; }
+.layer-page:last-child { page-break-after: auto; }
+.layer-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 8mm; text-align: center; }
+.keyboard { display: flex; flex-direction: column; gap: 3px; max-width: 260mm; margin: 0 auto; }
+.keyboard-row { display: flex; gap: 3px; justify-content: center; }
+.key {
+  flex: 1; min-width: 0; height: 14mm; background: #f8f8f8; border: 0.5px solid #bbb;
+  border-top: 2.5mm solid var(--accent, #999); border-radius: 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 0.7rem; color: #333; overflow: hidden; padding: 1px;
+}
+.key .key-label { font-weight: 600; font-size: 0.75rem; }
+.key .key-action { font-size: 0.55rem; color: #555; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.key.assigned { background: #fff; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head><body>`;
+
+    layerNames.forEach((lname, idx) => {
+      const layer = state.layers[lname];
+      const colorClass = CATPPUCCIN_LAYERS[idx % CATPPUCCIN_LAYERS.length];
+      const accent = catColors[colorClass] || '#999';
+      html += `\n<div class="layer-page">\n  <div class="layer-title" style="color:${accent}">Layer: ${esc(lname)}</div>\n  <div class="keyboard">`;
+      for (const row of KEYBOARD_LAYOUT) {
+        html += '    <div class="keyboard-row">\n';
+        for (const key of row) {
+          const act = layer.bindings[key.code] || '_';
+          const label = layer.labels?.[key.code] || key.label;
+          const assigned = act !== '_' ? ' assigned' : '';
+          const w = key.width || 1;
+          const flexStyle = w > 1 ? ` style="flex:${w}"` : '';
+          html += `      <div class="key${assigned}"${flexStyle} style="--accent:${accent}">`;
+          html += `<span class="key-label">${esc(label)}</span>`;
+          html += `<span class="key-action">${esc(act === '_' ? '' : act)}</span>`;
+          html += `</div>\n`;
+        }
+        html += '    </div>\n';
+      }
+      html += '  </div>\n</div>\n';
+    });
+
+    html += `
+<script>
+  window.onload = function() {
+    setTimeout(function() {
+      if (typeof window.print === 'function') window.print();
+    }, 400);
+  };
+</script>
+</body></html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
   };
 
   // Popup controls

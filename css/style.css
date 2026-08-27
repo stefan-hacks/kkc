@@ -768,3 +768,82 @@ footer {
   color: #fff;
   font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CATPPUCCIN THEME — Layer colors (pastel, visually pleasing)
+   ═══════════════════════════════════════════════════════════════ */
+
+.layer-rosewater { --layer-bg: #f2d5cf; --layer-fg: #11111b; }
+.layer-flamingo   { --layer-bg: #eebebe; --layer-fg: #11111b; }
+.layer-pink       { --layer-bg: #f4b8e4; --layer-fg: #11111b; }
+.layer-mauve      { --layer-bg: #cba6f7; --layer-fg: #11111b; }
+.layer-red        { --layer-bg: #eba0ac; --layer-fg: #11111b; }
+.layer-maroon     { --layer-bg: #f5c2e7; --layer-fg: #11111b; }
+.layer-peach      { --layer-bg: #fab387; --layer-fg: #11111b; }
+.layer-yellow     { --layer-bg: #f9e2af; --layer-fg: #11111b; }
+.layer-green       { --layer-bg: #a6e3a1; --layer-fg: #11111b; }
+.layer-teal       { --layer-bg: #94e2d5; --layer-fg: #11111b; }
+.layer-sky        { --layer-bg: #89dceb; --layer-fg: #11111b; }
+.layer-sapphire   { --layer-bg: #74c7ec; --layer-fg: #11111b; }
+.layer-blue       { --layer-bg: #89b4fa; --layer-fg: #11111b; }
+.layer-lavender   { --layer-bg: #b4befe; --layer-fg: #11111b; }
+
+.layer-tab { background: var(--bg-accent); color: var(--fg-secondary); }
+.layer-tab.active {
+  background: var(--layer-bg, var(--accent-dark));
+  color: var(--layer-fg, #fff);
+  border-color: var(--layer-bg, var(--accent));
+}
+
+/* Keyboard layer tint */
+.keyboard.layer-rosewater  .key { border-top: 3px solid #f2d5cf; }
+.keyboard.layer-flamingo    .key { border-top: 3px solid #eebebe; }
+.keyboard.layer-pink        .key { border-top: 3px solid #f4b8e4; }
+.keyboard.layer-mauve       .key { border-top: 3px solid #cba6f7; }
+.keyboard.layer-red         .key { border-top: 3px solid #eba0ac; }
+.keyboard.layer-maroon      .key { border-top: 3px solid #f5c2e7; }
+.keyboard.layer-peach       .key { border-top: 3px solid #fab387; }
+.keyboard.layer-yellow      .key { border-top: 3px solid #f9e2af; }
+.keyboard.layer-green       .key { border-top: 3px solid #a6e3a1; }
+.keyboard.layer-teal        .key { border-top: 3px solid #94e2d5; }
+.keyboard.layer-sky         .key { border-top: 3px solid #89dceb; }
+.keyboard.layer-sapphire    .key { border-top: 3px solid #74c7ec; }
+.keyboard.layer-blue        .key { border-top: 3px solid #89b4fa; }
+.keyboard.layer-lavender    .key { border-top: 3px solid #b4befe; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PDF PRINT STYLES — one layer per page
+   ═══════════════════════════════════════════════════════════════ */
+
+@media print {
+  body { background: #fff; color: #000; }
+  header, .toolbar, .global-config, .preview-area, footer, .key-popup { display: none !important; }
+  .app { padding: 0; }
+  .keyboard { page-break-after: always; display: flex; flex-direction: column; gap: 4px; margin: 20px; }
+  .keyboard:last-child { page-break-after: auto; }
+  .keyboard-row { display: flex; gap: 4px; }
+  .key {
+    flex: 1;
+    height: 48px;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    border-top: 4px solid var(--layer-accent, #999);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #333;
+  }
+  .key .key-label { font-weight: 600; }
+  .key .key-action { font-size: 0.6rem; color: #666; }
+  .layer-header {
+    display: block !important;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--layer-accent, #333);
+    text-align: center;
+  }
+}
