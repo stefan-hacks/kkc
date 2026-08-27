@@ -982,4 +982,187 @@ document.addEventListener('DOMContentLoaded', () => {
   ['cfg-seq-timeout', 'cfg-linux-dev'].forEach(id => {
     document.getElementById(id).addEventListener('input', updatePreview);
   });
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // KBD FILE LOADER — parse existing kanata configurations
+  // ═══════════════════════════════════════════════════════════════
+
+  document.getElementById('btn-load-file').onclick = () => {
+    document.getElementById('file-input').click();
+  };
+
+  document.getElementById('file-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        parseKbdFile(ev.target.result);
+        renderLayerTabs();
+        renderKeyboard();
+        updatePreview();
+        alert(`Loaded "${file.name}" successfully!`);
+      } catch (err) {
+        alert('Error parsing file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset so same file can be re-selected
+  };
 });
+
+/**
+ * Parse a kanata .kbd file and populate state.layers.
+ * Supports: defcfg, defsrc, defalias, deflayer.
+ * Preserves unknown actions verbatim.
+ */
+function parseKbdFile(text) {
+  const lines = text.split('\n');
+  let i = 0;
+
+  // Helper: read next non-comment, non-empty token line
+  function nextTokenLine() {
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      i++;
+      if (!line || line.startsWith(';;')) continue;
+      // Strip inline comments
+      return line.split(';;')[0].trim();
+    }
+    return null;
+  }
+
+  // Helper: read tokens until closing paren matched
+  function readSExpr() {
+    const parts = [];
+    let depth = 0;
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      i++;
+      if (!line || line.startsWith(';;')) continue;
+      const clean = line.split(';;')[0];
+      for (let ch of clean) {
+        if (ch === '(') depth++;
+        if (ch === ')') depth--;
+      }
+      parts.push(clean.trim());
+      if (depth <= 0 && parts.join('').includes(')')) break;
+    }
+    return parts.join(' ').trim();
+  }
+
+  // Parse defcfg
+  const cfgProcessUnmapped = document.getElementById('cfg-process-unmapped');
+  const cfgDangerCmd = document.getElementById('cfg-danger-cmd');
+  const cfgSeqTimeout = document.getElementById('cfg-seq-timeout');
+  const cfgLinuxDev = document.getElementById('cfg-linux-dev');
+
+  let newLayers = {};
+  let srcKeys = [];
+  let aliases = {};
+
+  while (i < lines.length) {
+    const line = nextTokenLine();
+    if (!line) break;
+
+    if (line.startsWith('(defcfg')) {
+      // Read until matching )
+      let depth = 1;
+      const cfgLines = [];
+      while (i < lines.length && depth > 0) {
+        const cfgLine = lines[i].trim();
+        i++;
+        if (!cfgLine || cfgLine.startsWith(';;')) continue;
+        const clean = cfgLine.split(';;')[0];
+        for (const ch of clean) {
+          if (ch === '(') depth++;
+          if (ch === ')') depth--;
+        }
+        cfgLines.push(clean.trim());
+        if (depth <= 0) break;
+      }
+      const cfgText = cfgLines.join(' ');
+      cfgProcessUnmapped.checked = /process-unmapped-keys\s+yes/.test(cfgText);
+      cfgDangerCmd.checked = /danger-enable-cmd\s+yes/.test(cfgText);
+      const st = cfgText.match(/sequence-timeout\s+(\d+)/);
+      if (st) cfgSeqTimeout.value = st[1];
+      const ld = cfgText.match(/linux-dev\s+(\S+)/);
+      if (ld) cfgLinuxDev.value = ld[1];
+
+    } else if (line.startsWith('(defsrc')) {
+      // Read defsrc keys until )
+      while (i < lines.length) {
+        const srcLine = lines[i].trim();
+        i++;
+        if (!srcLine || srcLine.startsWith(';;')) continue;
+        const clean = srcLine.split(';;')[0].trim();
+        if (clean === ')') break;
+        // Extract tokens
+        const tokens = clean.match(/[^\s\(\)]+/g) || [];
+        srcKeys.push(...tokens);
+      }
+
+    } else if (line.startsWith('(defalias')) {
+      // Read until )
+      let depth = 1;
+      const aliasLines = [];
+      while (i < lines.length && depth > 0) {
+        const alLine = lines[i].trim();
+        i++;
+        if (!alLine || alLine.startsWith(';;')) continue;
+        const clean = alLine.split(';;')[0];
+        for (const ch of clean) {
+          if (ch === '(') depth++;
+          if (ch === ')') depth--;
+        }
+        aliasLines.push(clean.trim());
+        if (depth <= 0) break;
+      }
+      // Parse alias lines
+      const aliasText = aliasLines.join(' ');
+      // Remove outer parens content
+      const inner = aliasText.replace(/^\)/, '').replace(/\)$/, '').trim();
+      // Tokenize and pair up
+      const tokens = inner.match(/(?:\([^\)]*\)|[^\s\(\)]+)/g) || [];
+      for (let j = 0; j < tokens.length; j += 2) {
+        const name = tokens[j];
+        const action = tokens[j + 1];
+        if (name && action) aliases[name] = action;
+      }
+
+    } else if (line.startsWith('(deflayer')) {
+      const layerName = line.match(/\(deflayer\s+(\S+)/)?.[1] || 'unnamed';
+      const layerBindings = {};
+      let keyIdx = 0;
+      while (i < lines.length) {
+        const lyrLine = lines[i].trim();
+        i++;
+        if (!lyrLine || lyrLine.startsWith(';;')) continue;
+        const clean = lyrLine.split(';;')[0].trim();
+        if (clean === ')') break;
+        // Tokenize actions
+        const tokens = clean.match(/(?:\([^\)]*\)|[^\s\(\)]+)/g) || [];
+        for (const tok of tokens) {
+          if (keyIdx >= srcKeys.length) break;
+          let action = tok;
+          // Resolve alias
+          if (action.startsWith('@')) {
+            const aliasName = action.slice(1);
+            action = aliases[aliasName] || action;
+          }
+          layerBindings[srcKeys[keyIdx]] = action;
+          keyIdx++;
+        }
+      }
+      newLayers[layerName] = { name: layerName, bindings: layerBindings };
+    }
+  }
+
+  if (Object.keys(newLayers).length === 0) {
+    throw new Error('No deflayer blocks found in file');
+  }
+
+  state.layers = newLayers;
+  state.activeLayer = Object.keys(newLayers)[0];
+}

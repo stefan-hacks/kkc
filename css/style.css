@@ -689,3 +689,11 @@ footer {
   .popup-configurator { width: 100%; border-left: none; border-top: 1px solid var(--border); }
   .toolbar { flex-direction: column; align-items: stretch; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FILE INPUT — hidden but functional for load-config feature
+   ═══════════════════════════════════════════════════════════════ */
+
+.hidden-file-input {
+  display: none;
+}
