@@ -102,6 +102,7 @@ const ACTION_CATEGORIES = [
   { id: 'mouse',    icon: '🖱️', label: 'Mouse' },
   { id: 'combo',    icon: '🔧', label: 'Combinations' },
   { id: 'special',  icon: '✨', label: 'Special' },
+  { id: 'advanced', icon: '⚙️', label: 'Advanced' },
 ];
 
 const COMMON_KEYS = ['esc','bspc','tab','ret','spc','lsft','rsft','lctl','rctl','lalt','ralt','lmet','rmet','caps','grv','home','end','pgup','pgdn','left','up','down','rght','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'];
@@ -356,6 +357,111 @@ const ACTION_OPTIONS = [
       { type: 'text', id: 'action', label: 'Result action', placeholder: 'e.g. esc' },
     ],
     build: (c) => `(sequence ${(c.keys || 'j k').trim().split(/\s+/).join(' ')} ${c.action || 'esc'})`,
+  },
+
+  /* ── ADVANCED (gear icon) ──────────────────────────────────── */
+  {
+    id: 'tap-hold-release-keys', category: 'advanced',
+    title: 'Tap-Hold (release-keys)', desc: 'Hold only activates on release of specific keys',
+    config: [
+      { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200, min: 50, max: 1000 },
+      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
+      { type: 'select', id: 'hold_mod', label: 'Hold action', options: MOD_KEYS, default: 'lctl' },
+      { type: 'text', id: 'triggers', label: 'Trigger keys (space-separated)', placeholder: 'e.g. a s d f' },
+    ],
+    build: (c) => `(tap-hold-release-keys ${c.tap_ms || 200} ${c.hold_ms || 200} ${c.tap_key || 'esc'} ${c.hold_mod || 'lctl'} ${(c.triggers || '').trim().split(/\s+/).join(' ')})`,
+  },
+  {
+    id: 'dynamic-macro-stop', category: 'advanced',
+    title: 'Stop Recording', desc: 'End dynamic macro recording',
+    build: () => 'dynamic-macro-record-stop',
+  },
+  {
+    id: 'push-msg', category: 'advanced',
+    title: 'Push Message', desc: 'Send message to TCP clients',
+    config: [
+      { type: 'text', id: 'msg', label: 'Message', placeholder: 'e.g. layer-changed' },
+    ],
+    build: (c) => `(push-msg "${c.msg || 'hello'}")`,
+  },
+  {
+    id: 'delegate-to-first', category: 'advanced',
+    title: 'Delegate to First Layer', desc: 'Pass unhandled keys to first layer',
+    config: [
+      { type: 'select', id: 'val', label: 'Enable', options: ['yes','no'], default: 'no' },
+    ],
+    build: (c) => `delegate-to-first-layer ${c.val || 'no'}`,
+  },
+  {
+    id: 'log-layer-changes', category: 'advanced',
+    title: 'Log Layer Changes', desc: 'Write layer transitions to log',
+    config: [
+      { type: 'select', id: 'val', label: 'Enable', options: ['yes','no'], default: 'no' },
+    ],
+    build: (c) => `log-layer-changes ${c.val || 'no'}`,
+  },
+  {
+    id: 'chord', category: 'advanced',
+    title: 'Chord (simultaneous)', desc: 'Multiple keys pressed at same time trigger action',
+    config: [
+      { type: 'text', id: 'name', label: 'Chord name', placeholder: 'e.g. mychord' },
+      { type: 'text', id: 'keys', label: 'Chord keys (space-separated)', placeholder: 'e.g. j k' },
+      { type: 'text', id: 'action', label: 'Result action', placeholder: 'e.g. esc' },
+    ],
+    build: (c) => `(chord ${c.name || 'chord1'} ${(c.keys || 'j k').trim().split(/\s+/).join(' ')} ${c.action || 'esc'})`,
+  },
+  {
+    id: 'switch', category: 'advanced',
+    title: 'Switch (conditional)', desc: 'Choose action based on active key state',
+    config: [
+      { type: 'text', id: 'pairs', label: 'Key/Action pairs (space-separated)', placeholder: 'e.g. a esc b tab' },
+    ],
+    build: (c) => {
+      const parts = (c.pairs || 'a esc').trim().split(/\s+/);
+      const pairs = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        pairs.push(`(${parts[i]} ${parts[i+1] || '_'})`);
+      }
+      return `(switch ${pairs.join(' ')})`;
+    },
+  },
+  {
+    id: 'release-layer', category: 'advanced',
+    title: 'Release Layer', desc: 'Force-deactivate a layer',
+    config: [
+      { type: 'text', id: 'layer', label: 'Layer name', placeholder: 'e.g. nav' },
+    ],
+    build: (c) => `(release-layer ${c.layer || 'base'})`,
+  },
+  {
+    id: 'movemouse-accel', category: 'advanced',
+    title: 'Accelerated Mouse', desc: 'Mouse movement with acceleration curve',
+    config: [
+      { type: 'number', id: 'up', label: 'Up accel', default: 1, min: 0, max: 10 },
+      { type: 'number', id: 'down', label: 'Down accel', default: 1, min: 0, max: 10 },
+      { type: 'number', id: 'left', label: 'Left accel', default: 1, min: 0, max: 10 },
+      { type: 'number', id: 'right', label: 'Right accel', default: 1, min: 0, max: 10 },
+    ],
+    build: (c) => `(mousemove-accel ${c.up || 1} ${c.down || 1} ${c.left || 1} ${c.right || 1})`,
+  },
+  {
+    id: 'lrld-next', category: 'advanced',
+    title: 'Load Next Config', desc: 'Cycle to next config file from startup args',
+    build: () => 'lrld-next',
+  },
+  {
+    id: 'lrld-prev', category: 'advanced',
+    title: 'Load Previous Config', desc: 'Cycle to previous config file from startup args',
+    build: () => 'lrld-prev',
+  },
+  {
+    id: 'lrld-num', category: 'advanced',
+    title: 'Load Config by Number', desc: 'Load specific config file by index (1-based)',
+    config: [
+      { type: 'number', id: 'n', label: 'Config number', default: 1, min: 1, max: 10 },
+    ],
+    build: (c) => `(lrld-num ${c.n || 1})`,
   },
 ];
 
