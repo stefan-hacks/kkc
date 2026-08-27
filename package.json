@@ -1,0 +1,17 @@
+{
+  "name": "kkc-kanata-keyboard-configurator",
+  "version": "1.0.0",
+  "description": "Visual interactive editor for Kanata keyboard configuration files",
+  "scripts": {
+    "serve": "python3 -m http.server 8765",
+    "test": "node test-generator.js"
+  },
+  "keywords": ["kanata", "keyboard", "remapper", "configurator", "qmk", "zsa"],
+  "license": "MIT",
+  "author": "Stefan Hacks",
+  "homepage": "https://github.com/stefan-hacks/kkc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stefan-hacks/kkc.git"
+  }
+}
