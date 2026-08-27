@@ -850,17 +850,28 @@ function renderPopupConfigurator() {
       blankOpt.value = ''; blankOpt.textContent = 'Common keys…';
       dropdown.appendChild(blankOpt);
       const COMMON_QUICK_KEYS = [
-        /* modifiers first (most important) */
+        /* modifiers + nav */
         'lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft','caps',
+        'tab','ret','spc','bspc','insert','home','end','pgup','pgdn',
+        'left','down','up','rght',
         /* letters a–z */
         'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
         /* numbers 0–9 */
         '0','1','2','3','4','5','6','7','8','9',
-        /* symbols */
-        '-','=','[',']','\\',';','\'',',','.','/','grv',
-        /* navigation / function */
-        'esc','bspc','tab','ret','spc','home','end','pgup','pgdn','left','up','down','rght',
-        'f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12',
+        /* symbols: shifted number row */
+        '!','@','#','$','%','^','&','*','(',')',
+        /* symbols: unshifted number row */
+        '-','=','_','+',
+        /* symbols: brackets */
+        '[',']','{','}',
+        /* symbols: slashes and pipes */
+        '\\','|','/','?',
+        /* symbols: punctuation */
+        ';',':','\'','"',',','<','.','>','`','~',
+        /* other */
+        'grv',
+        /* function */
+        'esc','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12',
       ];
       COMMON_QUICK_KEYS.forEach(k => {
         const o = document.createElement('option');
@@ -885,10 +896,27 @@ function renderPopupConfigurator() {
       const grid = document.createElement('div');
       grid.className = 'keyinput-mini-grid';
 
-      const MODIFIER_KEYS = ['lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft','caps'];
+      const MODIFIER_KEYS = [
+        'lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft',
+        'caps','tab','ret','spc','bspc','insert',
+        'home','end','pgup','pgdn','left','down','up','rght',
+      ];
       const LETTER_KEYS = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
       const NUMBER_KEYS = ['0','1','2','3','4','5','6','7','8','9'];
-      const SYMBOL_KEYS = ['-','=','[',']','\\',';','\'',',','.','/','grv'];
+      const SYMBOL_KEYS = [
+        /* shifted number row */
+        '!','@','#','$','%','^','&','*','(',')',
+        /* unshifted number-row symbols */
+        '-','=','_','+',
+        /* bracket types */
+        '[',']','{','}',
+        /* slashes and pipes */
+        '\\','|','/','?',
+        /* punctuation */
+        ';',':','\'','"',',','<','.','>','`','~',
+        /* other */
+        'grv',
+      ];
 
       function makeSection(title, keys) {
         const sec = document.createElement('div');
