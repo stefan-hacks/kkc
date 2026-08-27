@@ -13,6 +13,22 @@
    ═══════════════════════════════════════════════════════════════ */
 
 const KEYBOARD_LAYOUT = [
+  /* ── Function row (Esc + F1–F12) ─────────────────────────────── */
+  [
+    { code: 'esc',  label: 'Esc',  width: 1.5 },
+    { code: 'f1',   label: 'F1',   width: 1 },
+    { code: 'f2',   label: 'F2',   width: 1 },
+    { code: 'f3',   label: 'F3',   width: 1 },
+    { code: 'f4',   label: 'F4',   width: 1 },
+    { code: 'f5',   label: 'F5',   width: 1 },
+    { code: 'f6',   label: 'F6',   width: 1 },
+    { code: 'f7',   label: 'F7',   width: 1 },
+    { code: 'f8',   label: 'F8',   width: 1 },
+    { code: 'f9',   label: 'F9',   width: 1 },
+    { code: 'f10',  label: 'F10',  width: 1 },
+    { code: 'f11',  label: 'F11',  width: 1 },
+    { code: 'f12',  label: 'F12',  width: 1.5 },
+  ],
   [
     { code: 'grv',  label: '`',   width: 1 },
     { code: '1',    label: '1',   width: 1 },
@@ -887,42 +903,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!name || state.layers[name]) return alert('Invalid or duplicate layer name.');
     state.layers[name] = { name, bindings: {} };
     state.activeLayer = name;
-    renderLayerTabs();
-    renderKeyboard();
-    updatePreview();
-  };
-
-  document.getElementById('btn-load-sample').onclick = () => {
-    state.layers = {
-      base: {
-        name: 'base',
-        bindings: {
-          caps: '(tap-hold-press 200 200 esc lctl)',
-          a: '(tap-hold-press 200 200 a lctl)',
-          s: '(tap-hold-press 200 200 s lalt)',
-          d: '(tap-hold-press 200 200 d lsft)',
-          f: '(tap-hold-press 200 200 f lmet)',
-          j: '(tap-hold-press 200 200 j rmet)',
-          k: '(tap-hold-press 200 200 k rsft)',
-          l: '(tap-hold-press 200 200 l ralt)',
-          ';': '(tap-hold-press 200 200 ; rctl)',
-          grv: '(layer-while-held symbols)',
-        },
-      },
-      symbols: {
-        name: 'symbols',
-        bindings: {
-          '1': 'f1', '2': 'f2', '3': 'f3', '4': 'f4', '5': 'f5',
-          '6': 'f6', '7': 'f7', '8': 'f8', '9': 'f9', '0': 'f10',
-          q: '!', w: '@', e: '#', r: '$', t: '%',
-          y: '^', u: '&', i: '*', o: '(', p: ')',
-          a: '-', s: '=', d: '[', f: ']', g: '\\',
-          h: ';', j: "'", k: ',', l: '.', ';': '/',
-          z: '_', x: '+', c: '{', v: '}', b: '|',
-        },
-      },
-    };
-    state.activeLayer = 'base';
     renderLayerTabs();
     renderKeyboard();
     updatePreview();
