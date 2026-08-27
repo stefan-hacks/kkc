@@ -593,6 +593,87 @@ footer {
 
 .popup-footer-actions { display: flex; gap: 8px; }
 
+/* ═══════════════════════════════════════════════════════════════
+   KEYINPUT COMPONENT — free-form key selector with grid + dropdown
+   ═══════════════════════════════════════════════════════════════ */
+
+.keyinput-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.keyinput-text {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-primary);
+  font-size: 0.85rem;
+}
+.keyinput-text:focus { outline: none; border-color: var(--accent); }
+
+.keyinput-dropdown-wrap {
+  display: flex;
+  gap: 6px;
+}
+
+.keyinput-dropdown {
+  flex: 1;
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.keyinput-dropdown:focus { outline: none; border-color: var(--accent); }
+
+.keyinput-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.keyinput-mini-grid .mini-key {
+  aspect-ratio: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  color: var(--fg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.08s;
+}
+.keyinput-mini-grid .mini-key:hover {
+  border-color: var(--accent);
+  color: var(--fg-primary);
+  transform: scale(1.05);
+}
+.keyinput-mini-grid .mini-key.selected {
+  background: var(--accent-dark);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Responsive: fewer columns on narrow configurator */
+@media (max-width: 768px) {
+  .keyinput-mini-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }

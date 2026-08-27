@@ -124,10 +124,9 @@ const ACTION_OPTIONS = [
     id: 'key', category: 'basic',
     title: 'Type a key', desc: 'Send a single key press',
     config: [
-      { type: 'select', id: 'key', label: 'Key', options: COMMON_KEYS, default: 'esc' },
-      { type: 'text',   id: 'key_custom', label: 'Or type custom key name', placeholder: 'e.g. prnt' },
+      { type: 'keyinput', id: 'key', label: 'Key to type', default: 'esc', placeholder: 'Type any key name…' },
     ],
-    build: (c) => c.key_custom?.trim() || c.key || 'esc',
+    build: (c) => c.key?.trim() || 'esc',
   },
   {
     id: 'lrld', category: 'basic',
@@ -160,15 +159,12 @@ const ACTION_OPTIONS = [
     config: [
       { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200, min: 50, max: 1000 },
       { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200, min: 50, max: 1000 },
-      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
-      { type: 'select', id: 'hold_mod', label: 'Hold action', options: [...MOD_KEYS,'layer-toggle'], default: 'lctl' },
-      { type: 'text', id: 'hold_layer', label: 'Or hold layer name (if above = layer-toggle)', placeholder: 'e.g. symbols' },
+      { type: 'keyinput', id: 'tap_key', label: 'Tap action', default: 'esc', placeholder: 'Type any key name…' },
+      { type: 'keyinput', id: 'hold_mod', label: 'Hold action (modifier, layer name, or key)', default: 'lctl', placeholder: 'e.g. lctl, lsft, or symbols' },
     ],
     build: (c) => {
-      const tap = c.tap_key || 'esc';
-      const hold = c.hold_layer?.trim()
-        ? `(layer-while-held ${c.hold_layer.trim()})`
-        : (c.hold_mod || 'lctl');
+      const tap = c.tap_key?.trim() || 'esc';
+      const hold = c.hold_mod?.trim() || 'lctl';
       return `(tap-hold ${c.tap_ms || 200} ${c.hold_ms || 200} ${tap} ${hold})`;
     },
   },
@@ -178,15 +174,12 @@ const ACTION_OPTIONS = [
     config: [
       { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200, min: 50, max: 1000 },
       { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200, min: 50, max: 1000 },
-      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
-      { type: 'select', id: 'hold_mod', label: 'Hold action', options: [...MOD_KEYS,'layer-toggle'], default: 'lctl' },
-      { type: 'text', id: 'hold_layer', label: 'Or hold layer name', placeholder: 'e.g. symbols' },
+      { type: 'keyinput', id: 'tap_key', label: 'Tap action', default: 'esc', placeholder: 'Type any key name…' },
+      { type: 'keyinput', id: 'hold_mod', label: 'Hold action (modifier, layer, or key)', default: 'lctl', placeholder: 'e.g. lctl, lsft, or symbols' },
     ],
     build: (c) => {
-      const tap = c.tap_key || 'esc';
-      const hold = c.hold_layer?.trim()
-        ? `(layer-while-held ${c.hold_layer.trim()})`
-        : (c.hold_mod || 'lctl');
+      const tap = c.tap_key?.trim() || 'esc';
+      const hold = c.hold_mod?.trim() || 'lctl';
       return `(tap-hold-press ${c.tap_ms || 200} ${c.hold_ms || 200} ${tap} ${hold})`;
     },
   },
@@ -196,10 +189,10 @@ const ACTION_OPTIONS = [
     config: [
       { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200 },
       { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200 },
-      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
-      { type: 'select', id: 'hold_mod', label: 'Hold action', options: MOD_KEYS, default: 'lctl' },
+      { type: 'keyinput', id: 'tap_key', label: 'Tap action', default: 'esc', placeholder: 'Type any key name…' },
+      { type: 'keyinput', id: 'hold_mod', label: 'Hold action', default: 'lctl', placeholder: 'e.g. lctl or lsft' },
     ],
-    build: (c) => `(tap-hold-release ${c.tap_ms || 200} ${c.hold_ms || 200} ${c.tap_key || 'esc'} ${c.hold_mod || 'lctl'})`,
+    build: (c) => `(tap-hold-release ${c.tap_ms || 200} ${c.hold_ms || 200} ${c.tap_key?.trim() || 'esc'} ${c.hold_mod?.trim() || 'lctl'})`,
   },
 
   /* ── ONE-SHOT ───────────────────────────────────────────────── */
@@ -208,9 +201,9 @@ const ACTION_OPTIONS = [
     title: 'One-Shot Modifier', desc: 'Modifier stays active until next key press',
     config: [
       { type: 'number', id: 'timeout', label: 'Timeout (ms)', default: 500, min: 100, max: 5000 },
-      { type: 'select', id: 'mod', label: 'Modifier', options: MOD_KEYS, default: 'lctl' },
+      { type: 'keyinput', id: 'mod', label: 'Modifier', default: 'lctl', placeholder: 'e.g. lctl, lalt, lsft…' },
     ],
-    build: (c) => `(one-shot ${c.timeout || 500} ${c.mod || 'lctl'})`,
+    build: (c) => `(one-shot ${c.timeout || 500} ${c.mod?.trim() || 'lctl'})`,
   },
   {
     id: 'one-shot-layer', category: 'oneshot',
@@ -345,9 +338,9 @@ const ACTION_OPTIONS = [
     id: 'release-key', category: 'special',
     title: 'Release Key', desc: 'Force-release a held key',
     config: [
-      { type: 'select', id: 'key', label: 'Key to release', options: COMMON_KEYS, default: 'lctl' },
+      { type: 'keyinput', id: 'key', label: 'Key to release', default: 'lctl', placeholder: 'Type any key name…' },
     ],
-    build: (c) => `(release-key ${c.key || 'lctl'})`,
+    build: (c) => `(release-key ${c.key?.trim() || 'lctl'})`,
   },
   {
     id: 'sequence', category: 'special',
@@ -366,11 +359,11 @@ const ACTION_OPTIONS = [
     config: [
       { type: 'number', id: 'tap_ms', label: 'Tap timeout (ms)', default: 200, min: 50, max: 1000 },
       { type: 'number', id: 'hold_ms', label: 'Hold timeout (ms)', default: 200, min: 50, max: 1000 },
-      { type: 'select', id: 'tap_key', label: 'Tap action', options: COMMON_KEYS, default: 'esc' },
-      { type: 'select', id: 'hold_mod', label: 'Hold action', options: MOD_KEYS, default: 'lctl' },
+      { type: 'keyinput', id: 'tap_key', label: 'Tap action', default: 'esc', placeholder: 'Type any key name…' },
+      { type: 'keyinput', id: 'hold_mod', label: 'Hold action', default: 'lctl', placeholder: 'e.g. lctl or lsft' },
       { type: 'text', id: 'triggers', label: 'Trigger keys (space-separated)', placeholder: 'e.g. a s d f' },
     ],
-    build: (c) => `(tap-hold-release-keys ${c.tap_ms || 200} ${c.hold_ms || 200} ${c.tap_key || 'esc'} ${c.hold_mod || 'lctl'} ${(c.triggers || '').trim().split(/\s+/).join(' ')})`,
+    build: (c) => `(tap-hold-release-keys ${c.tap_ms || 200} ${c.hold_ms || 200} ${c.tap_key?.trim() || 'esc'} ${c.hold_mod?.trim() || 'lctl'} ${(c.triggers || '').trim().split(/\s+/).join(' ')})`,
   },
   {
     id: 'dynamic-macro-stop', category: 'advanced',
@@ -770,6 +763,84 @@ function renderPopupConfigurator() {
         updatePopupPreview();
       };
       container.appendChild(select);
+    } else if (field.type === 'keyinput') {
+      /* ── KeyInput: text + dropdown + mini-grid ───────────────── */
+      const wrap = document.createElement('div');
+      wrap.className = 'keyinput-wrap';
+
+      // Text input (free-form)
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = field.placeholder || 'Type any key name…';
+      input.value = state.popupConfig[field.id] || field.default || '';
+      input.className = 'keyinput-text';
+      input.oninput = (e) => {
+        state.popupConfig[field.id] = e.target.value;
+        // Clear visual selection from grid/dropdown
+        grid.querySelectorAll('.mini-key').forEach(k => k.classList.remove('selected'));
+        updatePopupPreview();
+      };
+      wrap.appendChild(input);
+
+      // Quick-select dropdown (common keys)
+      const dropdownWrap = document.createElement('div');
+      dropdownWrap.className = 'keyinput-dropdown-wrap';
+      const dropdown = document.createElement('select');
+      dropdown.className = 'keyinput-dropdown';
+      const blankOpt = document.createElement('option');
+      blankOpt.value = ''; blankOpt.textContent = 'Common keys…';
+      dropdown.appendChild(blankOpt);
+      const COMMON_QUICK_KEYS = ['esc','bspc','tab','ret','spc','lsft','rsft','lctl','rctl','lalt','ralt','lmet','rmet','caps','grv','home','end','pgup','pgdn','left','up','down','rght','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+      COMMON_QUICK_KEYS.forEach(k => {
+        const o = document.createElement('option');
+        o.value = k; o.textContent = k;
+        if ((state.popupConfig[field.id] || field.default) === k) o.selected = true;
+        dropdown.appendChild(o);
+      });
+      dropdown.onchange = (e) => {
+        if (!e.target.value) return;
+        input.value = e.target.value;
+        state.popupConfig[field.id] = e.target.value;
+        // Sync grid
+        grid.querySelectorAll('.mini-key').forEach(k => {
+          k.classList.toggle('selected', k.dataset.key === e.target.value);
+        });
+        updatePopupPreview();
+      };
+      dropdownWrap.appendChild(dropdown);
+      wrap.appendChild(dropdownWrap);
+
+      // Mini grid (alphabet + numbers + modifiers)
+      const grid = document.createElement('div');
+      grid.className = 'keyinput-mini-grid';
+      const MINI_GRID_KEYS = [
+        'esc','bspc','tab','ret','spc',
+        '1','2','3','4','5','6','7','8','9','0',
+        'a','b','c','d','e','f','g','h','i','j',
+        'k','l','m','n','o','p','q','r','s','t',
+        'u','v','w','x','y','z',
+        'lsft','rsft','lctl','rctl','lalt','ralt','lmet','rmet',
+        'caps','grv','-','=','[',']','\\',';','\'',',','.','/',
+        'home','end','pgup','pgdn','left','up','down','rght',
+      ];
+      MINI_GRID_KEYS.forEach(k => {
+        const btn = document.createElement('button');
+        btn.className = 'mini-key';
+        btn.textContent = k;
+        btn.dataset.key = k;
+        if ((state.popupConfig[field.id] || field.default) === k) btn.classList.add('selected');
+        btn.onclick = () => {
+          input.value = k;
+          state.popupConfig[field.id] = k;
+          grid.querySelectorAll('.mini-key').forEach(x => x.classList.remove('selected'));
+          btn.classList.add('selected');
+          updatePopupPreview();
+        };
+        grid.appendChild(btn);
+      });
+      wrap.appendChild(grid);
+
+      container.appendChild(wrap);
     }
   });
 
