@@ -896,11 +896,6 @@ function renderPopupConfigurator() {
       const grid = document.createElement('div');
       grid.className = 'keyinput-mini-grid';
 
-      const MODIFIER_KEYS = [
-        'lctl','lalt','lmet','lsft','rctl','ralt','rmet','rsft',
-        'caps','tab','ret','spc','bspc','del','insert',
-        'home','end','pgup','pgdn','left','down','up','rght',
-      ];
       const LETTER_KEYS = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
       const NUMBER_KEYS = ['0','1','2','3','4','5','6','7','8','9'];
       const SYMBOL_KEYS = [
@@ -941,7 +936,6 @@ function renderPopupConfigurator() {
         return sec;
       }
 
-      grid.appendChild(makeSection('Modifiers', MODIFIER_KEYS));
       grid.appendChild(makeSection('Letters', LETTER_KEYS));
       grid.appendChild(makeSection('Numbers', NUMBER_KEYS));
       grid.appendChild(makeSection('Symbols', SYMBOL_KEYS));
