@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="mocha">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,97 +8,116 @@
 </head>
 <body>
 
-<header>
-  <h1>KKC</h1>
-  <p class="subtitle">Kanata Keyboard Configurator — <a href="https://github.com/jtroo/kanata" target="_blank">kanata</a> v1.12.x</p>
+<!-- ═══════════════════════════════════════════════════════════════
+     TOP BAR: brand | layer tabs | theme switcher | actions
+     ═══════════════════════════════════════════════════════════════ -->
+<header class="top-bar">
+  <div class="brand">
+    <span>K</span>KC
+  </div>
+  <div class="layout-name" id="layout-name">Untitled Layout</div>
+  <div class="spacer"></div>
+
+  <!-- Layer tabs -->
+  <div id="layer-tabs" class="layer-tabs"></div>
+  <button id="btn-add-layer" class="btn btn-ghost" data-tooltip="Add layer">+</button>
+
+  <!-- Theme switcher -->
+  <div class="theme-switcher" id="theme-switcher">
+    <button data-theme="latte" data-tooltip="Latte (light)"></button>
+    <button data-theme="frappe" data-tooltip="Frappé"></button>
+    <button data-theme="macchiato" data-tooltip="Macchiato"></button>
+    <button data-theme="mocha" data-tooltip="Mocha (dark)" class="active"></button>
+  </div>
+
+  <!-- Global actions -->
+  <div class="action-bar">
+    <button id="btn-load-file" class="btn btn-ghost" data-tooltip="Load .kbd">Load</button>
+    <input type="file" id="file-input" accept=".kbd,.json" class="hidden-file-input">
+    <button id="btn-save-json" class="btn btn-ghost" data-tooltip="Save project JSON">Save</button>
+    <button id="btn-clear-all" class="btn btn-danger" data-tooltip="Clear all">Clear</button>
+    <button id="btn-copy" class="btn btn-ghost" data-tooltip="Copy .kbd to clipboard">Copy</button>
+    <button id="btn-download" class="btn btn-primary" data-tooltip="Download .kbd">Download</button>
+    <button id="btn-export-pdf" class="btn btn-primary" data-tooltip="Export PDF">PDF</button>
+  </div>
 </header>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN APP: keyboard stage (left) + side panel (right) + preview (bottom)
+     ═══════════════════════════════════════════════════════════════ -->
 <main class="app">
 
-  <!-- ── Toolbar ────────────────────────────────────────────────── -->
-  <section class="toolbar">
-    <div class="layer-bar">
-      <span class="label">Layer:</span>
-      <div id="layer-tabs" class="layer-tabs"></div>
-      <button id="btn-add-layer" class="btn btn-small btn-primary">+</button>
-    </div>
-    <div class="toolbar-actions">
-      <button id="btn-load-file" class="btn btn-small">Load Config</button>
-      <input type="file" id="file-input" accept=".kbd" class="hidden-file-input">
-      <button id="btn-clear-all" class="btn btn-small btn-danger">Clear All</button>
-      <button id="btn-copy" class="btn btn-small">Copy Config</button>
-      <button id="btn-download" class="btn btn-small btn-primary">Download .kbd</button>
-      <button id="btn-export-pdf" class="btn btn-small btn-primary">Export PDF</button>
-    </div>
+  <!-- Left: Keyboard Stage -->
+  <section class="keyboard-stage">
+    <div class="keyboard-tray" id="keyboard"></div>
   </section>
 
-  <!-- ── Keyboard ─────────────────────────────────────────────────── -->
-  <section id="keyboard" class="keyboard"></section>
-
-  <!-- ── Global Config ────────────────────────────────────────────── -->
-  <section class="global-config">
-    <h3>Global Options</h3>
-    <div class="config-grid">
-      <label><input type="checkbox" id="cfg-process-unmapped" checked> <span>Process unmapped keys</span></label>
-      <label><input type="checkbox" id="cfg-danger-cmd"> <span>Enable <code>cmd</code> action</span></label>
-      <label>Sequence timeout: <input type="number" id="cfg-seq-timeout" value="1000"> ms</label>
-      <label>Linux device: <input type="text" id="cfg-linux-dev" placeholder="/dev/input/event3"></label>
+  <!-- Right: Side Panel (key detail / action catalog) -->
+  <aside class="side-panel" id="side-panel">
+    <div class="onboarding" id="onboarding">
+      <h2>Welcome to KKC</h2>
+      <p>Click any key on the keyboard to start configuring.</p>
+      <ol>
+        <li>Add or select a layer using the tabs above.</li>
+        <li>Click a key to open the action catalog.</li>
+        <li>Pick an action, configure it, and save.</li>
+      </ol>
     </div>
-  </section>
+  </aside>
 
-  <!-- ── Config Preview ───────────────────────────────────────────── -->
-  <section class="preview-area">
-    <h3>Generated <code>kanata.kbd</code></h3>
+  <!-- Bottom: Live Preview + Global Config -->
+  <section class="preview-panel" id="preview-panel">
+    <div class="panel-header">
+      <span class="panel-title">Generated <code>kanata.kbd</code></span>
+      <span class="validation-status" id="validation-status"></span>
+    </div>
+    <!-- Global Config (inline) -->
+    <div style="display:flex;flex-wrap:wrap;gap:12px 24px;margin-bottom:12px;font-size:var(--text-sm);color:var(--fg-secondary);">
+      <label><input type="checkbox" id="cfg-process-unmapped" checked> Process unmapped keys</label>
+      <label><input type="checkbox" id="cfg-danger-cmd"> Enable cmd</label>
+      <label>Seq timeout: <input type="number" id="cfg-seq-timeout" value="1000" style="width:60px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--fg-primary);padding:3px 6px;"> ms</label>
+      <label>Linux dev: <input type="text" id="cfg-linux-dev" placeholder="/dev/input/event3" style="width:160px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--fg-primary);padding:3px 6px;"></label>
+    </div>
     <pre id="kbd-output" class="kbd-preview"></pre>
   </section>
 
 </main>
 
-<footer>
-  <p>KKC for <a href="https://github.com/jtroo/kanata">Kanata</a>. Not affiliated with jtroo.</p>
-</footer>
-
 <!-- ═══════════════════════════════════════════════════════════════
-     Key Popup — ZSA-inspired category-based action picker
+     MODAL (for key assignment on desktop + mobile)
      ═══════════════════════════════════════════════════════════════ -->
-<div id="key-popup" class="key-popup hidden">
-  <div class="popup-backdrop"></div>
-  <div class="popup-panel">
-    <!-- Header -->
-    <div class="popup-header">
-      <div class="popup-title">
-        <span class="key-badge" id="popup-key-badge">A</span>
-        <span id="popup-key-name">Key: a</span>
-      </div>
-      <div class="popup-search">
-        <input type="text" id="popup-search" placeholder="Search actions…">
-      </div>
-      <button id="popup-close" class="popup-close" title="Close (Esc)">×</button>
+<div id="modal" class="modal-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="key-badge" id="modal-key-badge">A</span>
+      <span class="modal-title" id="modal-title">Key: a</span>
+      <button class="modal-close" id="modal-close" title="Close (Esc)">×</button>
     </div>
-
-    <!-- Body: tabs + options + configurator -->
-    <div class="popup-body">
-      <!-- Category tabs (left sidebar) -->
-      <nav id="popup-tabs" class="popup-tabs"></nav>
-
-      <!-- Options grid (center) -->
-      <div class="popup-options-wrap">
-        <div id="popup-options" class="popup-options"></div>
+    <div class="modal-body" id="modal-body">
+      <!-- Catalog search -->
+      <div class="catalog-search" style="margin-bottom:10px;">
+        <input type="text" id="catalog-search" placeholder="Search actions…" style="width:100%;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--fg-primary);">
       </div>
-
-      <!-- Contextual configurator (right sidebar) -->
-      <aside id="popup-configurator" class="popup-configurator"></aside>
+      <!-- Catalog tabs -->
+      <div class="catalog-tabs" id="catalog-tabs"></div>
+      <!-- Options grid -->
+      <div class="catalog-grid" id="catalog-options"></div>
+      <!-- Configurator -->
+      <div class="configurator-fields" id="configurator" style="margin-top:12px;border-top:1px solid var(--border-default);padding-top:12px;"></div>
+      <!-- Key color picker -->
+      <div id="key-color-picker" style="margin-top:12px;border-top:1px solid var(--border-default);padding-top:12px;">
+        <div style="font-size:var(--text-sm);font-weight:600;color:var(--fg-secondary);margin-bottom:6px;">Key color (visual only)</div>
+        <div id="color-options" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
     </div>
-
-    <!-- Footer: preview of what will be written -->
-    <div class="popup-footer">
+    <div class="modal-footer">
       <div class="preview-line">
-        <span class="label">Will output:</span>
-        <code id="popup-preview-action">_</code>
+        <span style="font-size:var(--text-xs);color:var(--fg-muted)">Will output:</span>
+        <code id="modal-preview-action" style="color:var(--accent);font-family:var(--font-mono);font-size:var(--text-sm)">_</code>
       </div>
-      <div class="popup-footer-actions">
-        <button id="popup-clear" class="btn btn-small">Clear Key</button>
-        <button id="popup-save" class="btn btn-small btn-primary">Save</button>
+      <div class="action-bar">
+        <button id="modal-clear" class="btn btn-ghost">Clear Key</button>
+        <button id="modal-save" class="btn btn-primary">Save</button>
       </div>
     </div>
   </div>

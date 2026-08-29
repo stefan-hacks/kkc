@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KKC — Kanata Keyboard Configurator</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>KKC</h1>
+  <p class="subtitle">Kanata Keyboard Configurator — <a href="https://github.com/jtroo/kanata" target="_blank">kanata</a> v1.12.x</p>
+</header>
+
+<main class="app">
+
+  <!-- ── Toolbar ────────────────────────────────────────────────── -->
+  <section class="toolbar">
+    <div class="layer-bar">
+      <span class="label">Layer:</span>
+      <div id="layer-tabs" class="layer-tabs"></div>
+      <button id="btn-add-layer" class="btn btn-small btn-primary">+</button>
+    </div>
+    <div class="toolbar-actions">
+      <button id="btn-load-file" class="btn btn-small">Load Config</button>
+      <input type="file" id="file-input" accept=".kbd" class="hidden-file-input">
+      <button id="btn-clear-all" class="btn btn-small btn-danger">Clear All</button>
+      <button id="btn-copy" class="btn btn-small">Copy Config</button>
+      <button id="btn-download" class="btn btn-small btn-primary">Download .kbd</button>
+      <button id="btn-export-pdf" class="btn btn-small btn-primary">Export PDF</button>
+    </div>
+  </section>
+
+  <!-- ── Keyboard ─────────────────────────────────────────────────── -->
+  <section id="keyboard" class="keyboard"></section>
+
+  <!-- ── Global Config ────────────────────────────────────────────── -->
+  <section class="global-config">
+    <h3>Global Options</h3>
+    <div class="config-grid">
+      <label><input type="checkbox" id="cfg-process-unmapped" checked> <span>Process unmapped keys</span></label>
+      <label><input type="checkbox" id="cfg-danger-cmd"> <span>Enable <code>cmd</code> action</span></label>
+      <label>Sequence timeout: <input type="number" id="cfg-seq-timeout" value="1000"> ms</label>
+      <label>Linux device: <input type="text" id="cfg-linux-dev" placeholder="/dev/input/event3"></label>
+    </div>
+  </section>
+
+  <!-- ── Config Preview ───────────────────────────────────────────── -->
+  <section class="preview-area">
+    <h3>Generated <code>kanata.kbd</code></h3>
+    <pre id="kbd-output" class="kbd-preview"></pre>
+  </section>
+
+</main>
+
+<footer>
+  <p>KKC for <a href="https://github.com/jtroo/kanata">Kanata</a>. Not affiliated with jtroo.</p>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Key Popup — ZSA-inspired category-based action picker
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="key-popup" class="key-popup hidden">
+  <div class="popup-backdrop"></div>
+  <div class="popup-panel">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-title">
+        <span class="key-badge" id="popup-key-badge">A</span>
+        <span id="popup-key-name">Key: a</span>
+      </div>
+      <div class="popup-search">
+        <input type="text" id="popup-search" placeholder="Search actions…">
+      </div>
+      <button id="popup-close" class="popup-close" title="Close (Esc)">×</button>
+    </div>
+
+    <!-- Body: tabs + options + configurator -->
+    <div class="popup-body">
+      <!-- Category tabs (left sidebar) -->
+      <nav id="popup-tabs" class="popup-tabs"></nav>
+
+      <!-- Options grid (center) -->
+      <div class="popup-options-wrap">
+        <div id="popup-options" class="popup-options"></div>
+      </div>
+
+      <!-- Contextual configurator (right sidebar) -->
+      <aside id="popup-configurator" class="popup-configurator"></aside>
+    </div>
+
+    <!-- Footer: preview of what will be written -->
+    <div class="popup-footer">
+      <div class="preview-line">
+        <span class="label">Will output:</span>
+        <code id="popup-preview-action">_</code>
+      </div>
+      <div class="popup-footer-actions">
+        <button id="popup-clear" class="btn btn-small">Clear Key</button>
+        <button id="popup-save" class="btn btn-small btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/kanata-generator.js"></script>
+</body>
+</html>
