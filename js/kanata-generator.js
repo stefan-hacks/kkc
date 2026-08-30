@@ -390,41 +390,11 @@ function generateKbd() {
   lines.push(')');
   lines.push('');
 
-  // defalias
-  const aliasMap = new Map();
-  let aliasIdx = 0;
-  for (const layer of Object.values(proj.layers)) {
-    for (const [kcode, action] of Object.entries(layer.bindings)) {
-      if (action.includes(' ') && !action.startsWith('(layer') && !action.startsWith('(tap') && !action.startsWith('(one') && !action.startsWith('(macro') && !action.startsWith('(multi') && !action.startsWith('(fork') && !action.startsWith('(chord') && !action.startsWith('(sequence') && !action.startsWith('(switch') && !action.startsWith('(move') && !action.startsWith('(scroll') && !action.startsWith('(tap-hold') && !action.startsWith('(unicode') && !action.startsWith('(cmd') && !action.startsWith('(arbitrary') && !action.startsWith('(release') && !action.startsWith('(push')) {
-        // Simple key — no alias needed
-        continue;
-      }
-      if (action !== '_' && action !== 'XX') {
-        const aliasName = `a${aliasIdx}`;
-        aliasMap.set(action, aliasName);
-        aliasIdx++;
-      }
-    }
-  }
-
-  if (aliasMap.size) {
-    lines.push('(defalias');
-    for (const [action, name] of aliasMap) {
-      lines.push(`  ${name} ${action}`);
-    }
-    lines.push(')');
-    lines.push('');
-  }
-
   // deflayer for each layer
   for (const [lname, layer] of Object.entries(proj.layers)) {
     lines.push(`(deflayer ${lname}`);
     for (const row of KEYBOARD_LAYOUT) {
-      const tokens = row.map(k => {
-        const act = layer.bindings[k.code] || '_';
-        const alias = aliasMap.get(act);
-        return alias ? `@${alias}` : act;
-      });
+      const tokens = row.map(k => layer.bindings[k.code] || '_');
       lines.push('  ' + tokens.join(' '));
     }
     lines.push(')');
@@ -446,31 +416,62 @@ function validateKbdOutput(text) {
   if (depth !== 0) errors.push('Unmatched opening parenthesis');
 
   // Check defsrc vs deflayer sizes
-  const srcMatch = text.match(/\(defsrc\s+([\s\S]*?)\s*\)/);
+  // NOTE: We count top-level items per row rather than naive token splitting,
+  // because inline actions like (tap-hold 200 200 tab lctl) contain parens.
+  const srcMatch = text.match(/\(defsrc\s+([\s\S]*?)\)\s*\n/);
   if (srcMatch) {
-    const srcKeys = srcMatch[1].trim().split(/\s+/).filter(Boolean);
-    const layerMatches = [...text.matchAll(/\(deflayer\s+\S+\s+([\s\S]*?)\s*\)/g)];
+    const srcLines = srcMatch[1].trim().split(/\n/);
+    const srcRowCounts = srcLines.map(l => countTopLevelItems(l));
+
+    const layerMatches = [...text.matchAll(/\(deflayer\s+\S+\s+([\s\S]*?)\n\)/g)];
     for (const m of layerMatches) {
-      const layerKeys = m[1].trim().split(/\s+/).filter(Boolean);
-      if (layerKeys.length !== srcKeys.length) {
-        errors.push(`Layer has ${layerKeys.length} keys but defsrc has ${srcKeys.length}`);
+      const layerLines = m[1].trim().split(/\n/);
+      const layerRowCounts = layerLines.map(l => countTopLevelItems(l));
+      if (layerRowCounts.length !== srcRowCounts.length) {
+        errors.push(`Layer has ${layerRowCounts.length} rows but defsrc has ${srcRowCounts.length}`);
+      } else {
+        for (let i = 0; i < srcRowCounts.length; i++) {
+          if (layerRowCounts[i] !== srcRowCounts[i]) {
+            errors.push(`Row ${i + 1}: layer has ${layerRowCounts[i]} items but defsrc has ${srcRowCounts[i]}`);
+          }
+        }
       }
     }
   }
 
   // No duplicate layer names
-  const layerNames = [...text.matchAll(/\(deflayer\s+(\S+)/g)].map(m => m[1]);
+  const layerNames = [...text.matchAll(/\(deflayer\s+(\S+)/g)].map(m=>m[1]);
   const seen = new Set();
-  for (const n of layerNames) {
-    if (seen.has(n)) errors.push(`Duplicate layer name: "${n}"`);
-    seen.add(n);
-  }
+  for (const n of layerNames) { if (seen.has(n)) errors.push(`Duplicate layer name: "${n}"`); seen.add(n); }
 
   return errors;
 }
 
-/* ────────────────────────────────────────────────────────────────
-   4. KBD PARSER (import)
+/* Count top-level whitespace-separated items, treating parens as atomic units */
+function countTopLevelItems(line) {
+  const trimmed = line.trim();
+  if (!trimmed) return 0;
+  let count = 0;
+  let depth = 0;
+  let inToken = false;
+  for (const ch of trimmed) {
+    if (ch === '(') {
+      depth++;
+      if (depth === 1) { count++; inToken = true; }
+    } else if (ch === ')') {
+      depth--;
+      if (depth === 0) inToken = false;
+    } else if (/\s/.test(ch)) {
+      if (depth === 0) inToken = false;
+    } else {
+      if (depth === 0 && !inToken) { count++; inToken = true; }
+    }
+  }
+  return count;
+}
+
+/* ═════════════════════════════════───────────────────────────────
+   5. UI RENDERERS
    ──────────────────────────────────────────────────────────────── */
 
 function parseKbdFile(text) {
